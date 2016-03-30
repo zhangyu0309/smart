@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:p="http://www.springframework.org/schema/p" 
+	xmlns:cache="http://www.springframework.org/schema/cache"
+	xmlns:task="http://www.springframework.org/schema/task" 
+	xmlns:mongo="http://www.springframework.org/schema/data/mongo" 
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context-3.0.xsd
+        http://www.springframework.org/schema/data/mongo
+        http://www.springframework.org/schema/data/mongo/spring-mongo-1.0.xsd
+        http://www.springframework.org/schema/beans   
+        http://www.springframework.org/schema/beans/spring-beans-3.2.xsd    
+        http://www.springframework.org/schema/context   
+        http://www.springframework.org/schema/context/spring-context-3.2.xsd  
+        http://www.springframework.org/schema/cache   
+        http://www.springframework.org/schema/cache/spring-cache.xsd
+        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+        http://www.springframework.org/schema/task 
+        http://www.springframework.org/schema/task/spring-task-3.0.xsd">
+<!-- Quartz定时任务配置 -->
+<task:annotation-driven/>   
+<!-- 引入属性文件 -->
+<context:property-placeholder location="classpath:conf/database/jdbc.properties" />
+<!-- 自动扫描(自动注入) -->
+<context:component-scan base-package="com.smarthome.platform" />
+<!-- 支持注解 -->
+<context:annotation-config />	
+<!-- MySQL的MyBatis支持 -->
+<import resource="conf/spring/spring-mybatis.xml"/> 
+<!-- Mongodb支持 -->
+<!-- <import resource="conf/spring/spring-mongo.xml"/>  -->
+<!-- encache缓存支持 -->
+<!-- <import resource="conf/spring/spring-encache.xml"/>  -->
+<!-- 定时任务的Quartz支持 -->
+<!-- <import resource="conf/spring/spring-quartz.xml"/>  -->
+</beans> 

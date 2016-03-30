@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!--
+<meta name="viewport"
+	content="initial-scale=1.0, width=device-width, minimum-scale=1.0, maximum-scale=1.0, user-scalable=yes"
+	charset="UTF-8" http-equiv="Content-Type" />
+	-->
+<meta name="viewport"
+	content="initial-scale=0.8, width=470, height=424, minimum-scale=0.6, maximum-scale=1.0, user-scalable=yes"
+	charset="UTF-8" http-equiv="Content-Type" />
+<title>天气预报</title>
+<link type="text/css" rel="stylesheet" href="weather.css" />
+<script type="text/javascript">
+<!--
+	function disTip(tipId,disValue){
+		document.getElementById(tipId).style.display=disValue;
+	}
+	function clkTip(tipObj){
+		tipObj.style.display='none';
+	}
+	
+//-->
+</script>
+</head>
+<body>
+	<div class="op_weather4_twoicon_container_div">
+
+		<div class="op_weather4_twoicon" style="height: 280px;">
+			<a weath-eff="[]" weath-bg="cloudy" target="_blank"
+				class="op_weather4_twoicon_today OP_LOG_LINK">
+				<p class="op_weather4_twoicon_date">南京&nbsp;&nbsp;&nbsp;&nbsp;周四 01月15日 农历十一月廿五 (实时：6℃)</p>
+				<div
+					style="background: url(http://www.baidu.com/aladdin/img/new_weath/bigicon/3.png); *background: none; *filter: progid:DXImageTransform.Microsoft.AlphaImageLoader(src=http://www.baidu.com/aladdin/img/new_weath/bigicon/3.png)"
+					class="op_weather4_twoicon_icon"></div>
+
+				<p class="op_weather4_twoicon_temp">
+					8 ~ 4<sup>℃</sup>
+				</p>
+				<p class="op_weather4_twoicon_weath">阴转多云</p>
+				<p class="op_weather4_twoicon_wind">北风微风</p>
+
+				
+			</a> <a weath-eff="{&quot;halo&quot;:1}" weath-bg="daytime"
+				target="_blank" style="left: 188px"
+				class="op_weather4_twoicon_day OP_LOG_LINK">
+
+
+				<div class="op_weather4_twoicon_hover"></div>
+				<div class="op_weather4_twoicon_split"></div>
+				<p class="op_weather4_twoicon_date">周五</p>
+				<p class="op_weather4_twoicon_date_day">01月16日</p>
+
+				<div
+					style="background: url(http://www.baidu.com/aladdin/img/new_weath/icon/5.png); *background: none; *filter: progid:DXImageTransform.Microsoft.AlphaImageLoader(src=http://www.baidu.com/aladdin/img/new_weath/icon/5.png)"
+					class="op_weather4_twoicon_icon"></div>
+
+				<p class="op_weather4_twoicon_temp">12 ~ 0℃</p>
+				<p class="op_weather4_twoicon_weath">多云转晴</p>
+				<p class="op_weather4_twoicon_wind">西北风3-4级</p>
+
+			</a> <a weath-eff="{&quot;halo&quot;:1}" weath-bg="daytime"
+				style="left: 276px" class="op_weather4_twoicon_day OP_LOG_LINK">
+
+
+				<div class="op_weather4_twoicon_hover"></div>
+				<div class="op_weather4_twoicon_split"></div>
+				<p class="op_weather4_twoicon_date">周六</p>
+				<p class="op_weather4_twoicon_date_day">01月17日</p>
+
+				<div
+					style="background: url(http://www.baidu.com/aladdin/img/new_weath/icon/1.png); *background: none; *filter: progid:DXImageTransform.Microsoft.AlphaImageLoader(src=http://www.baidu.com/aladdin/img/new_weath/icon/1.png)"
+					class="op_weather4_twoicon_icon"></div>
+
+				<p class="op_weather4_twoicon_temp">8 ~ 0℃</p>
+				<p class="op_weather4_twoicon_weath">晴转多云</p>
+				<p class="op_weather4_twoicon_wind">东北风3-4级</p>
+
+			</a> <a weath-eff="{&quot;halo&quot;:1}" weath-bg="daytime"
+				style="left: 364px" class="op_weather4_twoicon_day OP_LOG_LINK">
+
+
+				<div class="op_weather4_twoicon_hover"></div>
+				<div class="op_weather4_twoicon_split"></div>
+				<p class="op_weather4_twoicon_date">周日</p>
+				<p class="op_weather4_twoicon_date_day">01月18日</p>
+
+				<div
+					style="background: url(http://www.baidu.com/aladdin/img/new_weath/icon/1.png); *background: none; *filter: progid:DXImageTransform.Microsoft.AlphaImageLoader(src=http://www.baidu.com/aladdin/img/new_weath/icon/1.png)"
+					class="op_weather4_twoicon_icon"></div>
+
+				<p class="op_weather4_twoicon_temp">10 ~ -1℃</p>
+				<p class="op_weather4_twoicon_weath">晴</p>
+				<p class="op_weather4_twoicon_wind">西风微风</p>
+
+			</a> 
+
+			<!--阴天-->
+			<div bg-name="cloudy" class="op_weather4_twoicon_bg" style="display:none;background-image:-webkit-linear-gradient(top,#485663,#a1b8ca);background-image:-moz-linear-gradient(top,#485663,#a1b8ca);background-image:-o-linear-gradient(top,#485663,#a1b8ca);background-image:-ms-linear-gradient(top,#485663,#a1b8ca);filter:progid:DXImageTransform.Microsoft.gradient(GradientType=0,StartColorStr=#485663,EndColorStr=#a1b8ca); z-index: 0.01; opacity: 1; height: 280px;">
+                </div>
+
+			
+			<!--晴天-->
+			<div bg-name="daytime" class="op_weather4_twoicon_bg" style="display:block;background-image:-webkit-linear-gradient(top,#0d68bc,#72ade0);background-image:-moz-linear-gradient(top,#0d68bc,#72ade0);background-image:-o-linear-gradient(top,#0d68bc,#72ade0);background-image:-ms-linear-gradient(top,#0d68bc,#72ade0);filter:progid:DXImageTransform.Microsoft.gradient(GradientType=0,StartColorStr=#0d68bc,EndColorStr=#72ade0); z-index: 2; opacity: 1; height: 280px;">
+                </div>
+
+		</div>
+
+	</div>
+</body>
+</html>

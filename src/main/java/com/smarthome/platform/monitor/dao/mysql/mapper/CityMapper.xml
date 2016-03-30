@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.smarthome.platform.monitor.dao.CityDao">
+
+	<select id="getPro" statementType="CALLABLE" 
+		resultType="com.smarthome.platform.monitor.bean.Area">
+		SELECT * FROM area_info d
+		<where>
+			 AND d.level = 1
+		</where>
+	</select>
+
+	<select id="getCity" statementType="CALLABLE" parameterType="java.lang.String" 
+		resultType="com.smarthome.platform.monitor.bean.Area">
+		SELECT * FROM area_info d
+		<where>
+			d.level = 2
+			<if test="_parameter !=null"> AND d.code LIKE concat(#{_parameter,jdbcType=VARCHAR},'%')</if>
+		</where>
+	</select>
+	
+	<select id="getCountry" statementType="CALLABLE" parameterType="java.lang.String"
+		resultType="com.smarthome.platform.monitor.bean.Area">
+		SELECT * FROM area_info d
+		<where>
+			d.level = 3 
+			<if test="_parameter !=null"> AND d.code LIKE concat(#{_parameter,jdbcType=VARCHAR},'%')</if>
+		</where>
+	</select>
+</mapper>

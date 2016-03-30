@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>  
+<ehcache xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"  
+    xsi:noNamespaceSchemaLocation="ehcache.xsd" updateCheck="true"  
+    monitoring="autodetect">  
+    <!--  <diskStore path="java.io.tmpdir" /> -->  
+    <!-- <diskStore path="E:/cachetmpdir"/>   -->
+    <!-- 
+      默认缓存模块的缓存设置 
+    --> 
+    <defaultCache 
+        maxElementsInMemory="10000" 
+        eternal="false"  
+        timeToIdleSeconds="120" 
+        timeToLiveSeconds="120" 
+        overflowToDisk="false"  
+        maxElementsOnDisk="10000000" 
+        diskPersistent="false"  
+        diskExpiryThreadIntervalSeconds="120" 
+        memoryStoreEvictionPolicy="LRU" />  
+     <!-- 
+       缓存块为andCache模块的缓存设置 
+      -->     
+    <cache name="andCache" 
+        maxElementsInMemory="10000"  
+        maxElementsOnDisk="1000" 
+        eternal="false" 
+        overflowToDisk="false"  
+        diskSpoolBufferSizeMB="20" 
+        timeToIdleSeconds="40" 
+        timeToLiveSeconds="80"  
+        memoryStoreEvictionPolicy="LFU" />  
+     <!-- 
+       页面缓存模块为SimplePageCachingFilter的缓存设置
+      -->
+    <cache name="SimplePageCachingFilter"  
+        maxElementsInMemory="10000"  
+        eternal="false" 
+        overflowToDisk="false"  
+        timeToIdleSeconds="1800"  
+        timeToLiveSeconds="2000" 
+        memoryStoreEvictionPolicy="LFU" /> 
+</ehcache>    

@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.smarthome.platform.authority.dao.mysql.AuthorityDao" >
+  <resultMap id="BaseResultMap" type="com.smarthome.platform.authority.bean.Authority" >
+    <result column="authority_id" property="authorityId" jdbcType="VARCHAR" />
+    <result column="authority_name" property="authorityName" jdbcType="VARCHAR" />
+    <result column="parent_id" property="parentId" jdbcType="VARCHAR" />
+    <result column="menu_url" property="menuUrl" jdbcType="VARCHAR" />
+    <result column="icon_cls" property="iconCls" jdbcType="VARCHAR" />
+    <result column="data_index" property="dataIndex" jdbcType="INTEGER" />
+    <result column="type" property="type" jdbcType="INTEGER" />
+    <result column="enabled" property="enabled" jdbcType="INTEGER" />
+    <result column="description" property="description" jdbcType="VARCHAR" />
+  </resultMap>
+  <insert id="insert" parameterType="com.smarthome.platform.authority.bean.Authority" >
+    insert into auth_authority (authority_id, authority_name, parent_id, 
+      menu_url, icon_cls, data_index, 
+      type, enabled, decription
+      )
+    values (#{authorityId,jdbcType=VARCHAR}, #{authorityName,jdbcType=VARCHAR}, #{parentId,jdbcType=VARCHAR}, 
+      #{menuUrl,jdbcType=VARCHAR}, #{iconCls,jdbcType=VARCHAR}, #{dataIndex,jdbcType=INTEGER}, 
+      #{type,jdbcType=INTEGER}, #{enabled,jdbcType=INTEGER}, #{decription,jdbcType=VARCHAR}
+      )
+  </insert>
+  <insert id="addAuthority" parameterType="com.smarthome.platform.authority.bean.Authority" >
+    insert into auth_authority
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="authorityId != null" >
+        authority_id,
+      </if>
+      <if test="authorityName != null" >
+        authority_name,
+      </if>
+      <if test="parentId != null" >
+        parent_id,
+      </if>
+      <if test="menuUrl != null" >
+        menu_url,
+      </if>
+      <if test="iconCls != null" >
+        icon_cls,
+      </if>
+      <if test="dataIndex != null" >
+        data_index,
+      </if>
+      <if test="type != null" >
+        type,
+      </if>
+      <if test="enabled != null" >
+        enabled,
+      </if>
+      <if test="description != null" >
+        description,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+      <if test="authorityId != null" >
+        #{authorityId,jdbcType=VARCHAR},
+      </if>
+      <if test="authorityName != null" >
+        #{authorityName,jdbcType=VARCHAR},
+      </if>
+      <if test="parentId != null" >
+        #{parentId,jdbcType=VARCHAR},
+      </if>
+      <if test="menuUrl != null" >
+        #{menuUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="iconCls != null" >
+        #{iconCls,jdbcType=VARCHAR},
+      </if>
+      <if test="dataIndex != null" >
+        #{dataIndex,jdbcType=INTEGER},
+      </if>
+      <if test="type != null" >
+        #{type,jdbcType=INTEGER},
+      </if>
+      <if test="enabled != null" >
+        #{enabled,jdbcType=INTEGER},
+      </if>
+      <if test="description != null" >
+        #{description,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateAuthorityById" parameterType="com.smarthome.platform.authority.bean.Authority" >
+    update auth_authority
+    <set >
+      <if test="authorityName != null" >
+        authority_name = #{authorityName,jdbcType=VARCHAR},
+      </if>
+      <if test="parentId != null" >
+        parent_id = #{parentId,jdbcType=VARCHAR},
+      </if>
+      <if test="menuUrl != null" >
+        menu_url = #{menuUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="iconCls != null" >
+        icon_cls = #{iconCls,jdbcType=VARCHAR},
+      </if>
+      <if test="dataIndex != null" >
+        data_index = #{dataIndex,jdbcType=INTEGER},
+      </if>
+      <if test="type != null" >
+        type = #{type,jdbcType=INTEGER},
+      </if>
+      <if test="enabled != null" >
+        enabled = #{enabled,jdbcType=INTEGER},
+      </if>
+      <if test="description != null" >
+        description = #{description,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where authority_id = #{authorityId,jdbcType=VARCHAR}
+  </update>
+
+</mapper>

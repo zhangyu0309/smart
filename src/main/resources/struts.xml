@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE struts PUBLIC
+    "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+    "http://struts.apache.org/dtds/struts-2.0.dtd">
+<struts>
+	<include file="struts-default.xml" />
+	<!-- 接口请求后缀形式 -->
+	<constant name="struts.action.extension" value="do" />
+	<constant name="struts.enable.DynamicMethodInvocation" value="true" />
+	<!-- 开发模式下 当文件变动时，是否重新加载文件 -->
+	<constant name="struts.convention.classes.reload" value="true" />
+	<constant name="struts.ui.theme" value="simple" />
+	<constant name="struts.locale" value="zh_CN" />
+	<constant name="struts.i18n.encoding" value="UTF-8" />
+	<constant name="struts.serve.static.browserCache" value="false" />
+	<constant name="struts.url.includeParams" value="none" />
+	<!-- 上传文件最大文件大小设置 -->
+	<constant name="struts.multipart.maxSize" value="10701096" />
+	<!-- 上传文件存储的临时存放位置 -->
+	<constant name="struts.multipart.saveDir " value="e:/tmp" />
+	<!-- 设置Struts2的整体过滤器 -->
+	<package name="strutsIntercepter" extends="struts-default">
+		<interceptors>
+			<!-- 指定自己定义的拦截器 SysUser 及其对应的类 -->
+			<interceptor name="adminIntercepter"
+				class="com.smarthome.core.intercepter.AdminIntercepter"></interceptor>
+			<!-- 设置整体的过滤拦截器 名称 -->
+			<interceptor-stack name="authorityIntercepter">
+				<!-- 加载Struts2默认的拦截器 -->
+				<interceptor-ref name="defaultStack"></interceptor-ref>
+				<!-- 加载自己定义的拦截器 SysUser -->
+				<interceptor-ref name="adminIntercepter"></interceptor-ref>
+			</interceptor-stack>
+		</interceptors>
+		<!-- 设置Struts2默认过滤器的名称 -->
+		<default-interceptor-ref name="authorityIntercepter"></default-interceptor-ref>
+		<!-- 默认值对应的跳转界面 -->
+		<global-results>
+			<result name="login_failed">/reLogin.jsp</result>
+		</global-results>
+	</package>
+	<!-- 以下是 
+	
+	管理员公共模块的接口管理模块
+	
+	 -->
+	<!-- 整体管理员模块的录模块 主要是设置登录页面的 登录不需要设置带有检测Session的过滤器 C -->
+	<package name="Admin_Login" extends="struts-default" namespace="">
+		<action name="*Admin" class="com.smarthome.platform.authority.controller.AdminAction" method="{1}">
+			<result name="login_success">/page/main.jsp</result>
+			<result name="login_failed">/login.jsp</result>
+			<result name="login_out">/login.jsp</result>
+			<result name="reset_pass">/resetpass.jsp</result>
+		</action>
+	</package>
+	<!-- 管理员用户登录模块的Action 需要继承带有检测Session的过滤器 -->
+	<package name="Admin_Action" extends="strutsIntercepter" namespace="">
+		<action name="*Action" class="com.smarthome.platform.authority.controller.AdminAction" method="{1}">
+		   <result name="login_failed">/reLogin.jsp</result>
+		</action>
+	</package>
+	<!-- 管理员用户管理功能菜单模块的Action 需要继承带有检测Session的过滤器 -->
+	<package name="Admin_Menu" extends="strutsIntercepter" namespace="">
+		<action name="*Authority" class="com.smarthome.platform.authority.controller.AuthorityAction" method="{1}">
+		   <result name="login_failed">/reLogin.jsp</result>
+		   <result name="add_method">/page/admin/authority/authorityForm.jsp</result>
+		   <result name="update_method">/page/admin/authority/authorityForm.jsp</result>
+		</action>
+	</package>
+	
+<!-- 管理员用户管理功能菜单模块的Action 需要继承带有检测Session的过滤器 -->
+	<package name="Admin_Role" extends="strutsIntercepter" namespace="">
+		<action name="*Role" class="com.smarthome.platform.authority.controller.RoleAtion" method="{1}">
+		   <result name="login_failed">/reLogin.jsp</result>
+		   <result name="add_method">/page/admin/authority/roleForms.jsp</result>
+		   <result name="update_method">/page/admin/authority/roleForms.jsp</result>
+		</action>
+	</package>
+	<!-- 管理员账号用户管理 -->
+	<package name="User_Action" extends="strutsIntercepter" namespace="">
+		<action name="*User" class="com.smarthome.platform.authority.controller.UserAction" method="{1}">
+		   <result name="login_failed">/reLogin.jsp</result>
+		   <result name="add_method">/page/admin/authority/userForm.jsp</result>
+		   <result name="update_method">/page/admin/authority/userForm.jsp</result>
+		   <result name="changepass_method">/changepassForm.jsp</result>
+		</action>
+	</package>
+<!-- 主机-->
+	<package name="Host_Action" extends="strutsIntercepter" namespace="">
+		<action name="*Host" class="com.smarthome.platform.monitor.controller.HostAction" method="{1}">
+		   <result name="login_failed">/reLogin.jsp</result>
+		   <result name="add_method">/page/monitor/config/hostForm.jsp</result>
+		</action>
+	</package>
+	<!-- 城市-->
+	<package name="City_Action" extends="strutsIntercepter" namespace="">
+		<action name="*City" class="com.smarthome.platform.monitor.controller.CityAction" method="{1}">
+		   <result name="login_failed">/reLogin.jsp</result>
+		</action>
+	</package>
+	<!-- 天气-->
+	<package name="Weather_Action" extends="strutsIntercepter" namespace="">
+		<action name="*Weather" class="com.smarthome.platform.monitor.controller.WeatherAction" method="{1}">
+		   <result name="login_failed">/reLogin.jsp</result>
+		</action>
+	</package>
+</struts>
+
+		

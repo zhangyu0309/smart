@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+    xsi:schemaLocation="http://www.springframework.org/schema/context
+          http://www.springframework.org/schema/context/spring-context-3.0.xsd
+          http://www.springframework.org/schema/beans
+          http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+          
+	<!-- 定时整合从原始数据表中整合channelHour	 -->
+	<bean id="initChannelHourByLiveOrigianlJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+	 	<property name="targetObject" ref="liveJobService">
+	 	</property>
+	 	<property name="targetMethod" value="initChannelHourByLiveOrigianlJob">
+	 	</property>
+	 	<property name="concurrent" value="false">
+	 	</property>
+	</bean>
+	<!-- 从channelHour中整合ChannelDay任务 -->
+	<bean id="initChannelDayByChannelHourJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+	 	<property name="targetObject" ref="liveJobService">
+	 	</property>
+	 	<property name="targetMethod" value="initChannelDayByChannelHourJob">
+	 	</property>
+	 	<property name="concurrent" value="false">
+	 	</property>
+	</bean>
+	<!-- 从原始数据整合节目 -->
+	<bean id="initProgramDayByVODOriginalJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+	 	<property name="targetObject" ref="vodJobService">
+	 	</property>
+	 	<property name="targetMethod" value="initProgramDayByVODOriginalJob">
+	 	</property>
+	 	<property name="concurrent" value="false">
+	 	</property>
+	</bean>
+	<!-- 整合每天的点击量 -->
+	<bean id="initVODDayByProgramDayJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+	 	<property name="targetObject" ref="vodJobService">
+	 	</property>
+	 	<property name="targetMethod" value="initVODDayByProgramDayJob">
+	 	</property>
+	 	<property name="concurrent" value="false">
+	 	</property>
+	</bean>
+	<!-- 整合栏目每天的点击量统计 -->
+	<bean id="initVODCatalogDayByProgramDayJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+	 	<property name="targetObject" ref="vodJobService">
+	 	</property>
+	 	<property name="targetMethod" value="initVODCatalogDayByProgramDayJob">
+	 	</property>
+	 	<property name="concurrent" value="false">
+	 	</property>
+	</bean>
+	<!-- 整合厂商每天的点击量 -->
+	<bean id="initVODProviderDayByProgramDayJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+	 	<property name="targetObject" ref="vodJobService">
+	 	</property>
+	 	<property name="targetMethod" value="initVODProviderDayByProgramDayJob">
+	 	</property>
+	 	<property name="concurrent" value="false">
+	 	</property>
+	</bean>
+	<!-- 整合每月的点击量 -->
+	<bean id="initProgramMonthDayByProgramDayJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+	 	<property name="targetObject" ref="vodJobService">
+	 	</property>
+	 	<property name="targetMethod" value="initProgramMonthDayByProgramDayJob">
+	 	</property>
+	 	<property name="concurrent" value="false">
+	 	</property>
+	</bean>
+	<!-- 设置任务触发器时间 -->
+	<!--
+	   每天统计上一天每小时内的直播/回看详情任务（由直播原始表（live_original）信息导入到每天每小时直播/回看详情表(channel_hour)）
+	   定时：每天每小时的第5分钟执行
+	 -->
+	<bean id="initChannelHourByLiveOrigianlJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+	 	<property name="jobDetail" ref="initChannelHourByLiveOrigianlJob">
+	 	</property>
+	 	<property name="cronExpression" >
+	 		<value>0 5 0/1 * * ?</value>
+	 	</property>
+	</bean>
+	<!-- 
+	   每天统计上一天内的直播/回看详情任务（由每天每小时内的直播/回看详情表（channel_hour）信息导入到每天直播/回看详情表(channel_day)）
+	   定时：每天的01:05:00分执行任务
+	 -->
+	<bean id="initChannelDayByChannelHourJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+	 	<property name="jobDetail" ref="initChannelDayByChannelHourJob">
+	 	</property>
+	 	<property name="cronExpression" >
+	 		<value>0 5 1 * * ?</value>
+	 	</property>
+	</bean>
+	<!--
+	   每天统计上一天的点播详情任务（由点播原始表（vod_original）信息导入到每天点播详情表(program_day)）
+	   定时：每天的1:01:00分执行任务
+	 -->
+	<bean id="initProgramDayByVODOriginalJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+	 	<property name="jobDetail" ref="initProgramDayByVODOriginalJob">
+	 	</property>
+	 	<property name="cronExpression" >
+	 		<value>0 1 1 * * ?</value>
+	 	</property>
+	</bean>
+	<!-- 
+	   每天统计上一天的点播的总点击量（由 program_day表的信息分析后导入到vod_day表中）
+	   定时:每天的01:30:00执行任务 
+	 -->
+	<bean id="initVODDayByProgramDayJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+	 	<property name="jobDetail" ref="initVODDayByProgramDayJob">
+	 	</property>
+	 	<property name="cronExpression" >
+	 		<value>0 30 1 * * ?</value>
+	 	</property>
+	</bean>
+	<!-- 
+	   每天统计上一天的栏目点播的总点击量（由 program_day表的信息分析后导入到vod_catalog_day表中）
+	   定时:每天的01:40:00执行任务
+	 -->
+	<bean id="initVODCatalogDayByProgramDayJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+	 	<property name="jobDetail" ref="initVODCatalogDayByProgramDayJob">
+	 	</property>
+	 	<property name="cronExpression" >
+	 		<value>0 40 1 * * ?</value>
+	 	</property>
+	</bean>
+	<!-- 
+	  每天统计上一天的厂商点播的总点击量（由 program_day表的信息分析后导入到vod_provider_day表中）
+	  定时:每天的01:40:00执行任务
+	 -->
+	<bean id="initVODProviderDayByProgramDayJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+	 	<property name="jobDetail" ref="initVODProviderDayByProgramDayJob">
+	 	</property>
+	 	<property name="cronExpression" >
+	 		<value>0 40 1 * * ?</value>
+	 	</property>
+	</bean>
+	<!-- 
+	  统计上个月的按照月份划分的节目点击量详情（由 program_day表的信息分析后导入到program_month表中）
+	  定时:每个月的第一天的01:15:00执行任务
+	 -->
+	<bean id="initProgramMonthDayByProgramDayJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+	 	<property name="jobDetail" ref="initProgramMonthDayByProgramDayJob">
+	 	</property>
+	 	<property name="cronExpression" >
+	 		<value>0 15 1 L * ?</value>
+	 	</property>
+	</bean>
+	
+	<!--任务配置调度工厂 0 15 1 L * ?-->
+	<bean name="startQuertz" class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+		<property name="triggers">
+			<list>
+				<ref bean="initChannelHourByLiveOrigianlJobTrigger" />
+				<ref bean="initChannelDayByChannelHourJobTrigger" />
+				<ref bean="initProgramDayByVODOriginalJobTrigger" />
+				<ref bean="initVODDayByProgramDayJobTrigger" />
+				<ref bean="initVODCatalogDayByProgramDayJobTrigger" />
+				<ref bean="initVODProviderDayByProgramDayJobTrigger" />
+				<ref bean="initProgramMonthDayByProgramDayJobTrigger" />
+			</list>
+		</property>
+	</bean>
+    
+</beans>
