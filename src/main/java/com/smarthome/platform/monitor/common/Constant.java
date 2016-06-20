@@ -143,4 +143,34 @@ public class Constant {
 		iconMap.put("53", "24");
 		iconMap.put("99", "");
 	}
+	
+	/**
+	 * 开始标记
+	 */
+	public static final byte[] START = "START".getBytes();
+	
+	/**
+	 * 结束标记
+	 */
+	public static final byte[] CLOSE = "CLOSE".getBytes();
+	
+	/**
+	 * 查询所有传感器数据
+	 */
+	public static final byte[] GET_DATA = {0x3a,0x00,(byte) 0xff,0x04,(byte) 0xc1,0x23};
+	
+	/**
+	 * 开设备
+	 */
+	public static final byte[] OPEN_DEVICE = {0x3a,0x00,0x01,0x0a,0x00,0x31,0x23};
+	
+	/**
+	 * 关设备
+	 */
+	public static final byte[] CLOSE_DEVICE = {0x3a,0x00,0x01,0x0a,0x01,0x30,0x23};
+	
+	/**
+	 * 每条子设备数据的长度
+	 */
+	public static int data_length = 20;
 }

@@ -11,7 +11,8 @@ import org.springframework.stereotype.Repository;
 
 import com.smarthome.core.base.dao.jdbc.BaseJDBCDao;
 import com.smarthome.core.util.JsonUtils;
-import com.smarthome.platform.monitor.bean.GpsInfo;
+import com.smarthome.platform.monitor.bean.Command;
+import com.smarthome.platform.monitor.bean.SensorData;
 
 @Repository
 public class HostJDBCDao extends BaseJDBCDao{
@@ -25,81 +26,121 @@ public class HostJDBCDao extends BaseJDBCDao{
 	}
 
 	/**
-	 * 保存位置信息
-	 * @param gi
+	 * 保存信息
 	 */
-	public static void savePosition(GpsInfo gi){
+	public static void saveData(SensorData s){
 		Connection connection = null;
 		PreparedStatement pstmt = null;
 		ResultSet rs = null;
 		try{
 			connection = dataSource.getConnection();
-			StringBuilder tempSql = new StringBuilder("call Prc_SavePosition(?,?,?,?,?,?,?,?,?,?,?,?)");
-			//call Prc_SavePosition(#{deviceid},#{time},#{latitude},#{ns},#{longitude},#{ew},#{speed},#{direction},#{angle},#{angledirection},#{satellites},#{elevation}
+			StringBuilder tempSql = new StringBuilder("insert into device_data(device_id,temp1,wet1,temp2,wet2,light) values");
+			tempSql.append(" (?,?,?,?,?,?)");
 			pstmt = connection.prepareStatement(tempSql.toString());
-			pstmt.setString(1 , gi.getDeviceid());
-			pstmt.setString(2 , gi.getTime());
-			pstmt.setString(3 , gi.getLatitude());
-			pstmt.setString(4 , gi.getNs());
-			pstmt.setString(5 , gi.getLongitude());
-			pstmt.setString(6 , gi.getEw());
-			pstmt.setString(7 , gi.getSpeed());
-			pstmt.setString(8 , gi.getDirection());
-			pstmt.setString(9 , gi.getAngle());
-			pstmt.setString(10 , gi.getAngledirection());
-			pstmt.setString(11 , gi.getSatellites());
-			pstmt.setString(12 , gi.getElevation());
-			rs = pstmt.executeQuery();
-//			while(rs.next()){
-//				resultRoleStringList.add(rs.getString("role_id"));
-//			}
+			pstmt.setString(1, s.getDevice_id());
+			pstmt.setString(2, s.getTemp1());
+			pstmt.setString(3, s.getWet1());
+			pstmt.setString(4, s.getTemp2());
+			pstmt.setString(5, s.getWet2());
+			pstmt.setString(6, s.getLight());
+			if (!pstmt.execute()){
+				log.info("error insert : " + JsonUtils.toJson(s));
+			}
+			
+			pstmt.close();
+			pstmt = null;
+			StringBuilder tempSql1 = new StringBuilder("update device_info set temp1=?,wet1=?,temp2=?,wet2=?,light=?,data_time=CURRENT_TIMESTAMP,online=1 where device_id=?");
+			pstmt = connection.prepareStatement(tempSql1.toString());
+			
+			pstmt.setString(1, s.getTemp1());
+			pstmt.setString(2, s.getWet1());
+			pstmt.setString(3, s.getTemp2());
+			pstmt.setString(4, s.getWet2());
+			pstmt.setString(5, s.getLight());
+			pstmt.setString(6, s.getDevice_id());
+			if (!pstmt.execute()){
+				//log.info("error update : " + JsonUtils.toJson(s));
+			}
 		}catch(Exception e){
 			log.error(e.getMessage() , e);
-			log.error("保存位置信息失败:" + JsonUtils.getJAVABeanJSON(gi));
 		}finally {
 			closeAllConnection(connection, pstmt, rs);
 		}
 	}
 	
+	
 	/**
-	 * 设备离线
-	 * @param id
+	 * 上下线
 	 */
-	public static void offline (String id){
+	public static void online(int online, String device_id){
 		Connection connection = null;
 		PreparedStatement pstmt = null;
 		ResultSet rs = null;
 		try{
 			connection = dataSource.getConnection();
-			StringBuilder tempSql = new StringBuilder("call Prc_Offline(?)");
+			StringBuilder tempSql = new StringBuilder("update device_info set online=? where device_id= ? or parent_id=?");
+			if (online == 1){
+				tempSql = new StringBuilder("update device_info set online=? where device_id= ?");
+			}
 			pstmt = connection.prepareStatement(tempSql.toString());
-			pstmt.setString(1 , id);
-			rs = pstmt.executeQuery();
+			pstmt.setInt(1, online);
+			pstmt.setString(2, device_id);
+			if (online == 0){
+				pstmt.setString(3, device_id);
+			}
+			pstmt.execute();
 		}catch(Exception e){
 			log.error(e.getMessage() , e);
-			log.error("离线设备失败:" + id);
 		}finally {
 			closeAllConnection(connection, pstmt, rs);
 		}
 	}
-	
+
 	/**
-	 * 设备心跳
-	 * @param id
+	 * 获取一条开关设备的指令
+	 * @param device_id
+	 * @return
 	 */
-	public static void heartbeat (String id){
+	public static Command getCommand(String device_id) {
 		Connection connection = null;
 		PreparedStatement pstmt = null;
 		ResultSet rs = null;
 		try{
 			connection = dataSource.getConnection();
-			StringBuilder tempSql = new StringBuilder("call Prc_Heartbead(?)");
+			StringBuilder tempSql = new StringBuilder("select * from command ");
+			tempSql.append(" where device_id like ");
+			tempSql.append(" ? order by cid limit 0,1");
 			pstmt = connection.prepareStatement(tempSql.toString());
-			pstmt.setString(1 , id);
+			pstmt.setString(1, device_id + "%");
 			rs = pstmt.executeQuery();
+			while(rs.next()){
+				return new Command(rs.getInt("cid"), rs.getString("device_id"), rs.getInt("operation"));
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+			log.error(e.getMessage());
+		}finally {
+			closeAllConnection(connection, pstmt, rs);
+		}
+		return null;
+	}
+
+	/**
+	 * 开关设备的指令处理完成 删除指令信息
+	 * @param cid
+	 */
+	public static void deleteCommand(int cid) {
+		Connection connection = null;
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+		try{
+			connection = dataSource.getConnection();
+			StringBuilder tempSql = new StringBuilder("delete from command where cid=?");
+			pstmt = connection.prepareStatement(tempSql.toString());
+			pstmt.setInt(1, cid);
+			pstmt.execute();
 		}catch(Exception e){
 			log.error(e.getMessage() , e);
-			log.error("保存设备心跳失败:" + id);
 		}finally {
 			closeAllConnection(connection, pstmt, rs);
 		}

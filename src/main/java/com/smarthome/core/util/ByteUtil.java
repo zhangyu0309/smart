@@ -35,7 +35,7 @@ public class ByteUtil {
 			temp[0] = 0x00;
 			temp[1] = 0x00;
 			temp[2] = src[0];
-			temp[1] = src[1];
+			temp[3] = src[1];
 			src = temp;
 		}
 		int value;
@@ -121,5 +121,21 @@ public class ByteUtil {
 		byte[] b = new byte[] { (byte) 0xe2, (byte) 0xe3, (byte) 0xe4,
 				(byte) 0xea, (byte) 0xca, (byte) 0xda, (byte) 0xea, (byte) 0xfa };
 		System.out.println(byte2Long(b));
+	}
+
+	/**
+	 * 字节数组转为十六进制打印
+	 * @param bytes
+	 * @return
+	 */
+	public static String ListBytes(byte[] bytes) {
+		if (bytes == null || bytes.length == 0){
+			return "";
+		}
+		StringBuilder sb = new StringBuilder();
+		for (byte b : bytes) {
+			sb.append(ByteUtil.toHex(b)).append("|");
+		}
+		return sb.toString();
 	}
 }

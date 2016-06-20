@@ -307,3 +307,56 @@ var deleteUser = function() {
 		});
 	}
 };
+
+/**
+ *管理用户设备 
+ */
+var devices = function() {
+	var rows = grid.datagrid('getSelections');
+	var num = rows.length;
+	if (num == 0) {
+		$.messager.alert('提示', '请选择一条记录进行操作!', 'info'); // $.messager.alert('提示',
+														// '请选择一条记录进行操作!',
+		// 'info');
+		return;
+	} else if (num > 1) {
+		$.messager.alert('提示', '您选择了多条记录,只能选择一条记录进行修改!', 'info'); // $.messager.alert('提示',
+		// '您选择了多条记录,只能选择一条记录进行修改!',
+		// 'info');
+		return;
+	} else {
+		var src = sy.contextPath + '/beginAddOrUpdateDevice.do?editType=2&manage_type=1&user_id='
+		+ rows[0].userId;
+		window.location.href = src;
+		//window.open(sy.contextPath + '/beginAddOrUpdatePackage.do?edit_type=3&user_id='
+			//	+ rows[0].user_id);
+	}
+};
+/**
+ *查看用户设备 
+ */
+var showdevices = function() {
+	var rows = grid.datagrid('getSelections');
+	var num = rows.length;
+	if (num == 0) {
+		$.messager.alert(Language.Common.tip, Language.Common.mustselect, 'info');
+		return;
+	} else if (num > 1) {
+		$.messager.alert(Language.Common.tip, Language.Common.selectone, 'info');
+		return;
+	} else {
+		var dialog = parent.sy.modalDialog({
+			title : Language.esuser.showpackage.title + '-' + rows[0].user_id,
+			width : 650,
+			height : 350,
+			url : sy.contextPath + '/beginAddOrUpdateDevice.do?editType=2&manage_type=2&user_id='
+					+ rows[0].userId,
+			buttons : [ {
+				text : '关闭',
+				handler : function() {
+					dialog.dialog('destroy');
+				}
+			} ]
+		});
+	}
+};
