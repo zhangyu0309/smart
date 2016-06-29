@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.smarthome.platform.authority.dao.mysql.RoleDao">
+	<resultMap id="BaseResultMap"
+		type="com.smarthome.platform.authority.bean.Role">
+		<id column="role_id" property="roleId" jdbcType="VARCHAR" />
+		<result column="role_name" property="roleName" jdbcType="VARCHAR" />
+		<result column="create_time" property="createTime" jdbcType="TIMESTAMP" />
+		<result column="description" property="description" jdbcType="VARCHAR" />
+	</resultMap>
+	<sql id="Base_Column_List">
+		role_id, role_name, create_time, description
+	</sql>
+	<!-- 角色及其它对应权限的返回对象 -->
+	<resultMap id="RoleWithAuthorityMap" type="com.smarthome.platform.authority.bean.Role" extends="BaseResultMap">
+		<collection property="authorityList" javaType="list" ofType="com.smarthome.platform.authority.bean.Authority">
+			<result column="authority_id" property="authorityId" jdbcType="VARCHAR" />
+			<result column="authority_name" property="authorityName" jdbcType="VARCHAR" />
+			<result column="parent_id" property="parentId" jdbcType="VARCHAR" />
+			<result column="menu_url" property="menuUrl" jdbcType="VARCHAR" />
+			<result column="icon_cls" property="iconCls" jdbcType="VARCHAR" />
+			<result column="data_index" property="dataIndex" jdbcType="INTEGER" />
+			<result column="type" property="type" jdbcType="INTEGER" />
+			<result column="enabled" property="enabled" jdbcType="INTEGER" />
+		</collection>
+	</resultMap>
+	
+	<select id="getRoleWithAuthorityById" resultMap="RoleWithAuthorityMap" parameterType="java.lang.String">
+		select  * from
+		auth_role r where
+		r.role_id =#{roleId,jdbcType=VARCHAR}  ;
+	</select>
+	<select id="getRoleByPage" resultMap="BaseResultMap">
+		select
+		<include refid="Base_Column_List" />
+		from auth_role
+		order by create_time desc
+		<if test="start != null"> limit #{start},#{limit} </if>
+	</select>
+	<select id="getRoleCountByParams" resultType="int">
+		select
+		count(1)
+		from
+		auth_role
+	</select>
+	<delete id="deleteRoleById" parameterType="java.lang.String">
+		delete from auth_role
+		where role_id = #{roleId,jdbcType=VARCHAR}
+	</delete>
+    <!-- 删除某一角色下对应的权限 -->
+	<delete id="deleteRoleAuthorityById" parameterType="java.lang.String">
+	   delete  from auth_role_authority where role_id = #{roleId,jdbcType=VARCHAR} ;
+	</delete>
+	<delete id="deleteRoleAuthorityByRoleId" parameterType="java.lang.String">
+		delete
+		from auth_role_authority
+		where role_id = #{roleId,jdbcType=VARCHAR}
+	</delete>
+	
+	
+  <insert id="addRoleWithAuthority"  >
+    insert into auth_role_authority (role_id,authority_id)
+    values (#{roleId,jdbcType=VARCHAR}, #{authorityId,jdbcType=VARCHAR})
+  </insert>
+	<insert id="add" parameterType="com.smarthome.platform.authority.bean.Role">
+		insert into auth_role
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="roleId != null">
+				role_id,
+			</if>
+			<if test="roleName != null">
+				role_name,
+			</if>
+			<if test="createTime != null">
+				create_time,
+			</if>
+			<if test="description != null">
+				description,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="roleId != null">
+				#{roleId,jdbcType=VARCHAR},
+			</if>
+			<if test="roleName != null">
+				#{roleName,jdbcType=VARCHAR},
+			</if>
+			<if test="createTime != null">
+				#{createTime,jdbcType=TIMESTAMP},
+			</if>
+			<if test="description != null">
+				#{description,jdbcType=VARCHAR},
+			</if>
+		</trim>
+	</insert>
+	<update id="updateRole" parameterType="com.smarthome.platform.authority.bean.Role">
+		update auth_role
+		<set>
+			<if test="roleName != null">
+				role_name = #{roleName,jdbcType=VARCHAR},
+			</if>
+			<if test="createTime != null">
+				create_time = #{createTime,jdbcType=TIMESTAMP},
+			</if>
+			<if test="description != null">
+				description = #{description,jdbcType=VARCHAR},
+			</if>
+		</set>
+		where role_id = #{roleId,jdbcType=VARCHAR}
+	</update>
+	<update id="updateByPrimaryKey" parameterType="com.smarthome.platform.authority.bean.Role">
+		update auth_role
+		set role_name = #{roleName,jdbcType=VARCHAR},
+		create_time =
+		#{createTime,jdbcType=TIMESTAMP},
+		description =
+		#{description,jdbcType=VARCHAR}
+		where role_id =
+		#{roleId,jdbcType=VARCHAR}
+	</update>
+</mapper>

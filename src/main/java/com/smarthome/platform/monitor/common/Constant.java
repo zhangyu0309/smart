@@ -18,7 +18,7 @@ public class Constant {
 	/**
 	 * socket超时时间
 	 */
-	public static final int SOCKET_WAIT_TIME = 18000;
+	public static final int SOCKET_WAIT_TIME = 180000;
 	
 	/**
 	 * 气象局开放端口appid

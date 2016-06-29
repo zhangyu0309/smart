@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.smarthome.platform.monitor.dao.DeviceDao">
+
+	<select id="getDevice" statementType="CALLABLE" parameterType="com.smarthome.platform.monitor.bean.Device"
+		resultType="com.smarthome.platform.monitor.bean.Device">
+		SELECT d.*,c.user_id,c.real_name FROM device_info d,auth_user c
+		<where>
+		    d.user_id = c.user_id
+			<if test="device_id !=null"> AND d.device_id LIKE concat('%',#{device_id,jdbcType=VARCHAR},'%')</if>
+			<if test="device_name !=null"> AND d.device_name LIKE concat('%',#{device_name,jdbcType=VARCHAR},'%')</if>
+			<if test="user_id !=null"> AND c.user_id =#{user_id,jdbcType=VARCHAR}</if>
+			<if test="real_name !=null"> AND c.real_name LIKE concat('%',#{real_name,jdbcType=VARCHAR},'%')</if>
+			<if test="start_time !=null"> AND d.create_time >=#{start_time}</if>
+			<if test="end_time !=null"> AND d.create_time &lt;=#{end_time}</if>
+		</where>
+	</select>
+	
+	<select id="getAllParentDevice" statementType="CALLABLE" parameterType="java.lang.String"
+		resultType="com.smarthome.platform.monitor.bean.Device">
+		SELECT d.* FROM device_info d
+		<where>
+		    d.parent_id='0'
+			<if test="_parameter !=null"> AND d.user_id =#{_parameter,jdbcType=VARCHAR}</if>
+		</where>
+	</select>
+
+	<select id="getDeviceById" statementType="CALLABLE" parameterType="java.lang.String"
+		resultType="com.smarthome.platform.monitor.bean.Device">
+		SELECT d.* FROM device_info d
+		<where>
+			<if test="_parameter !=null"> AND d.device_id =#{_parameter,jdbcType=VARCHAR}</if>
+		</where>
+	</select>
+	
+	<insert id="addDevice" parameterType="com.smarthome.platform.monitor.bean.Device" >
+    insert into device_info
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="device_id != null" >
+        device_id,
+      </if>
+      <if test="device_name != null" >
+        device_name,
+      </if>
+      <if test="parent_id != null" >
+        parent_id,
+      </if>
+      <if test="description != null" >
+        description,
+      </if>
+      <if test="user_id != null" >
+        user_id,
+      </if>
+      <if test="iconCls != null" >
+        iconCls,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+       <if test="device_id != null" >
+        #{device_id,jdbcType=VARCHAR},
+      </if>
+      <if test="device_name != null" >
+        #{device_name,jdbcType=VARCHAR},
+      </if>
+      <if test="parent_id != null" >
+        #{parent_id,jdbcType=VARCHAR},
+      </if>
+      <if test="description != null" >
+        #{description,jdbcType=VARCHAR},
+      </if>
+      <if test="user_id != null" >
+        #{user_id,jdbcType=VARCHAR},
+      </if>
+      <if test="iconCls != null" >
+        #{iconCls,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateDevice" parameterType="com.smarthome.platform.monitor.bean.Device" >
+    update device_info
+    <set >
+      <if test="user_id != null" >
+        device_id = #{user_id,jdbcType=VARCHAR},
+      </if>
+      <if test="device_name != null" >
+        device_name = #{device_name,jdbcType=VARCHAR},
+      </if>
+      <if test="parent_id != null" >
+        parent_id = #{parent_id,jdbcType=VARCHAR},
+      </if>
+      <if test="description != null" >
+        description = #{description,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where device_id = #{device_id,jdbcType=VARCHAR}
+  </update>
+  
+  <delete id="delDeviceById" parameterType="com.smarthome.platform.monitor.bean.Device" >
+	delete from device_info where device_id = #{device_id,jdbcType=VARCHAR} or parent_id = #{device_id,jdbcType=VARCHAR}
+  </delete>
+  
+  <select id="getSensorData" statementType="CALLABLE" parameterType="java.util.HashMap"
+		resultType="com.smarthome.platform.monitor.bean.SensorData">
+    select * from device_info WHERE user_id = #{user_id,jdbcType=VARCHAR} and temp1 is not null order by device_id limit #{start,jdbcType=INTEGER},#{limit,jdbcType=INTEGER}
+  </select>
+  
+  <select id="getLatestData" statementType="CALLABLE" parameterType="java.lang.String"
+		resultType="com.smarthome.platform.monitor.bean.SensorData">
+    	select * from device_info where device_id= #{_parameter,jdbcType=VARCHAR} and temp1 is not null
+  </select>
+  
+ <delete id="deleteCommand" parameterType="java.lang.String" >
+	delete from command where device_id=#{_parameter,jdbcType=VARCHAR}
+  </delete>
+  
+  <insert id="onoffDvice" parameterType="java.util.HashMap" >
+    insert into command
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="device_id != null" >
+        device_id,
+      </if>
+      <if test="option != null" >
+        operation,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+       <if test="device_id != null" >
+        #{device_id,jdbcType=VARCHAR},
+      </if>
+      <if test="option != null" >
+        #{option,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+</mapper>
