@@ -1,6 +1,7 @@
 package com.smarthome.platform.monitor.common;
 
 import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -173,4 +174,9 @@ public class Constant {
 	 * 每条子设备数据的长度
 	 */
 	public static int data_length = 20;
+	
+	/**
+	 * 用户登录口令
+	 */
+	public static Map<String, String> tokenMap = new HashMap<String, String>();
 }

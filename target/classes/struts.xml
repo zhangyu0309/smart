@@ -105,6 +105,13 @@
 		</action>
 	</package>
 	
+	<!-- 提供app开关设备的接口 不需要设置带有检测Session的过滤器 C -->
+	<package name="Device_App" extends="struts-default" namespace="">
+		<action name="*FromApp" class="com.smarthome.platform.monitor.controller.AppDeviceAction" method="{1}">
+			
+		</action>
+	</package>
+	
 	<!-- 设备管理 -->
 	<package name="Device_Action" extends="strutsIntercepter" namespace="">
 		<action name="*Device" class="com.smarthome.platform.monitor.controller.DeviceAction" method="{1}">

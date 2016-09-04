@@ -2,18 +2,22 @@ package com.smarthome.platform.authority.controller;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 import javax.annotation.Resource;
 
 import com.smarthome.core.base.action.BaseAction;
 import com.smarthome.core.common.AuthorityCommon;
+import com.smarthome.core.util.EncryptUtil;
 import com.smarthome.core.util.JsonUtils;
 import com.smarthome.core.util.MD5;
 import com.smarthome.core.util.SmsUtil;
+import com.smarthome.core.util.UUIDGenerator;
 import com.smarthome.platform.authority.bean.Admin;
 import com.smarthome.platform.authority.bean.Sms;
 import com.smarthome.platform.authority.service.AdminService;
+import com.smarthome.platform.monitor.common.Constant;
 
 /**
  * 管理员操作接口类
@@ -259,6 +263,42 @@ public class AdminAction extends BaseAction{
 		this.jsonString = JsonUtils.getJAVABeanJSON(map);
 		try {
 			this.responseWriter(jsonString);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	/**
+     * 用户登录模块
+     * @return
+     */
+	public String Auth(){
+		Map<String,Object> rmap = new HashMap<String,Object>();
+		if(this.userId!=null&&this.passwd!=null){
+			try{
+				Map<String,Object> map = this.adminService.isLoginSuccess(EncryptUtil.decrypt3Des(userId), EncryptUtil.decrypt3Des(passwd));
+				if((Boolean) map.get("flag")){
+					rmap.put("flag", true);
+					rmap.put("msg", AuthorityCommon.LOGIN_SUCCESS);
+					String token = UUIDGenerator.getUUID().replace("-", "");
+					Constant.tokenMap.put(this.userId, token);
+					rmap.put("token", token);
+				}else{
+					rmap.put("flag", false);
+					rmap.put("msg", AuthorityCommon.LOGIN_FAILED);
+				}
+			}catch(Exception e){
+				logger.error(e.getMessage(), e);
+				rmap.put("flag", false);
+				rmap.put("msg", AuthorityCommon.LOGIN_FAILED);
+			}
+		}else{
+			rmap.put("flag", false);
+			rmap.put("msg", "用户名及其密码必填");
+		}
+		try {
+			this.responseWriter( JsonUtils.getJAVABeanJSON(rmap));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
