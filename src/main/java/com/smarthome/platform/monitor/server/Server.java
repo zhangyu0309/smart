@@ -13,8 +13,9 @@ import java.util.TimerTask;
 import org.apache.log4j.Logger;
 
 import com.smarthome.core.util.ByteUtil;
-import com.smarthome.core.util.JsonUtils;
 import com.smarthome.platform.monitor.bean.Command;
+import com.smarthome.platform.monitor.bean.DeviceBoard;
+import com.smarthome.platform.monitor.bean.DeviceBoardData;
 import com.smarthome.platform.monitor.bean.SensorData;
 import com.smarthome.platform.monitor.common.Constant;
 import com.smarthome.platform.monitor.dao.HostJDBCDao;
@@ -44,6 +45,8 @@ public class Server implements Runnable {
 		try {
 			in = _s.getInputStream();
 			os = _s.getOutputStream();
+			logger.info("get connect from " + _s.getRemoteSocketAddress());
+			sendMessage("TCP_CONNECTED".getBytes());
 			while (true) {
 				if (Constant.SOCKET_WAIT_TIME > 0 && 
 						(System.currentTimeMillis() - lastReceiveTime > Constant.SOCKET_WAIT_TIME)) {
@@ -65,7 +68,7 @@ public class Server implements Runnable {
 //						System.out.print(ByteUtil.toHex(b));
 //						System.out.print("|");
 //					}
-					byte[] response = MessageHandle(bytes);
+					MessageHandle(bytes);
 				}
 			}
 		} catch (Exception e) {
@@ -118,50 +121,78 @@ public class Server implements Runnable {
 		        @Override  
 		        public void run() {
 		        	//sendMessage(Constant.GET_DATA);
-		        	logger.info("get command");
+//		        	logger.info("get command");
 		        	Command command = HostJDBCDao.getCommand(device_id); 
-		        	logger.info(JsonUtils.getJAVABeanJSON(command));
+//		        	logger.info(JsonUtils.getJAVABeanJSON(command));
 		        	if (command != null){
-		        		byte[] remsg = new byte[7];
-		        		remsg[0] = 0x3a;
-		        		if (command.getDevice_id().contains("-")){
-		        			logger.info("sub device:" + command.getDevice_id());
-		        			//子设备关闭
-		        			String subid = command.getDevice_id().split("-")[1];
-		        			logger.info("0");
-		    		        remsg[1] = Byte.parseByte(subid.substring(0, 2), 16);//Byte.parseByte("0x" + subid.substring(0, 2));
-		    		        logger.info("1");
-		    		        remsg[2] = Byte.parseByte(subid.substring(2, 4), 16);//Byte.parseByte("0x" + subid.substring(2, 2));
-		    		        logger.info("2");
-		    		        remsg[3] = 0x0a;
-		    		        logger.info("3");
-		    		        remsg[4] = (byte) command.getOperation();
-		    		        logger.info("4");
-		    		        remsg[5] = (byte) (remsg[0] ^ remsg[1] ^ remsg[2] ^ remsg[3] ^ remsg[4]);
-		    		        logger.info("5");
-		    		        remsg[6] = 0x23;
-		    		        if (sendMessage(remsg)){
-		    		        	logger.info("6");
+		        		//开关设备
+		        		if(command.getOperation() == 0 || command.getOperation() == 1){
+		        			byte[] remsg = new byte[7];
+			        		remsg[0] = 0x3a;
+			        		if (command.getDevice_id().contains("-") && !command.getDevice_id().endsWith("-")){
+			        			logger.info("sub device:" + command.getDevice_id());
+			        			//子设备关闭
+			        			String subid = command.getDevice_id().split("-")[1];
+			    		        remsg[1] = Byte.parseByte(subid.substring(0, 2), 16);//Byte.parseByte("0x" + subid.substring(0, 2));
+			    		        remsg[2] = Byte.parseByte(subid.substring(2, 4), 16);//Byte.parseByte("0x" + subid.substring(2, 2));
+			    		        remsg[3] = 0x0a;
+			    		        remsg[4] = (byte) command.getOperation();
+			    		        remsg[5] = (byte) (remsg[0] ^ remsg[1] ^ remsg[2] ^ remsg[3] ^ remsg[4]);
+			    		        remsg[6] = 0x23;
+			    		        if (sendMessage(remsg)){
+			    		        	HostJDBCDao.deleteCommand(command.getCid());
+			    		        }else{
+			    		        	logger.info("send command fail");
+			    		        }
+			        		}else{
+			        			//主控板关闭
+			        			logger.info("main device : " + device_id);
+			        			if (sendMessage(Constant.CLOSE)){
+			    		        	HostJDBCDao.deleteCommand(command.getCid());
+			    		        }else{
+			    		        	logger.info("send command fail1");
+			    		        }
+			        		}
+		        		}else if(command.getOperation() == 2){
+		        			//2分发
+		        			
+		        		}else if(command.getOperation() == 3){
+		        			//3获取
+		        			if (sendMessage(Constant.GETNV)){
 		    		        	HostJDBCDao.deleteCommand(command.getCid());
 		    		        }else{
-		    		        	logger.info("send command fail");
-		    		        }
-		        		}else{
-		        			//主控板关闭
-		        			logger.info("main device : " + device_id);
-		        			if (sendMessage(Constant.CLOSE)){
-		    		        	HostJDBCDao.deleteCommand(command.getCid());
-		    		        }else{
-		    		        	logger.info("send command fail1");
+		    		        	logger.info("send get key command fail1");
 		    		        }
 		        		}
 		        	}
 		        }  
 		    }; 
 		    timer.scheduleAtFixedRate(task, 0, 60000);
-		    timer.scheduleAtFixedRate(task1, 0, 5000);
+		    timer.scheduleAtFixedRate(task1, 0, 1000);
 		}else if (new String(msg).startsWith("local_client_fd is not connect to")){
 			sendMessage(Constant.START);
+		}else if (new String(msg).startsWith("KEYCONF:DONE")){
+			//下发确认
+			return null;
+		}else if (new String(msg).startsWith("CHANLIST")){
+			//获取配置回复
+			String currentBoard = "";
+			String currentKey = "";
+			for (String templine : new String(msg).split("\n")){
+				logger.info(templine);
+				if (templine.startsWith("Key Board")){
+					//Key Board 1 .
+					currentBoard = templine.replace("Key Board", "").replace(".", "").trim();
+				}
+				if (templine.startsWith("Key:")){
+					//Key:1-0x0, 0x1f.
+					currentKey = templine.split("-")[0].split(":")[1].trim();
+					HostJDBCDao.updateDeviceKey(new DeviceBoard(device_id, currentBoard, currentKey, 
+							templine.split("-")[1].split(",")[0].trim(), 
+							templine.split("-")[1].split(",")[1].trim()));
+				}
+			}
+			return null;
 		}else if (msg[0] == 0x3a){
 			tempdata = new byte[]{};
 			//msg = new byte[]{0x3A,0x00,0x01,0x04,0x3F,0x23,

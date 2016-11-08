@@ -2,7 +2,6 @@ package com.smarthome.platform.authority.controller;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.regex.Pattern;
 
 import javax.annotation.Resource;

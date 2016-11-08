@@ -1,5 +1,6 @@
 package com.smarthome.platform.monitor.controller;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +14,8 @@ import com.smarthome.core.common.AuthorityCommon;
 import com.smarthome.core.util.JsonUtils;
 import com.smarthome.platform.authority.bean.Admin;
 import com.smarthome.platform.monitor.bean.Device;
+import com.smarthome.platform.monitor.bean.DeviceBoard;
+import com.smarthome.platform.monitor.bean.DeviceBoardData;
 import com.smarthome.platform.monitor.bean.SensorData;
 import com.smarthome.platform.monitor.service.DeviceService;
 
@@ -61,7 +64,13 @@ public class DeviceAction extends BaseAction {
 	 */
 	private int option;
 	
-	
+	/**
+	 * 配置参数
+	 */
+	private String deviceId;
+	private String boardId;
+	private String keyId;
+	private String positionId;
 	/**
 	 * 查询设备信息
 	 * @return
@@ -207,6 +216,8 @@ public class DeviceAction extends BaseAction {
 				//new device_id
 				this.device.setUser_id(this.device.getParent_id() + "-" + this.device.getDevice_id().split("-")[1]);
 				this.device.setUser_id(this.device.getUser_id().toLowerCase());
+//				this.device.setDevice_id(this.device.getParent_id() + "-" + this.device.getDevice_id());
+//				this.device.setDevice_id(this.device.getDevice_id().toLowerCase());
 			} 
 			//开启编辑
 			map = this.deviceService.updateDevice(this.device);
@@ -312,6 +323,192 @@ public class DeviceAction extends BaseAction {
 		return null;
 	}
 	/**
+	 * 查询所有主设备
+	 * @return
+	 */
+	public String getAllMain(){
+		Map<String,Object> map = new HashMap<String,Object>();
+		Admin sessionAdmin = (Admin) this.getSession(AuthorityCommon.ADMIN_SESSION);
+		if (sessionAdmin.getUserId() != null && !sessionAdmin.getUserId().equals("")){
+			List<Device> list = this.deviceService.getAllMainDevice(sessionAdmin.getUserId());
+			if(list != null){
+				map.put("rows", list);
+				map.put("total", list.size());
+			}
+		}
+		this.jsonString = JsonUtils.getJAVABeanJSON(map);
+		try {
+			this.responseWriter(this.jsonString);
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage() , e);
+		}
+		return null;
+	}
+	/**
+	 * 根据查询条件查询所有参数配置
+	 * @return
+	 */
+	public String getAllKeysBy(){
+		Map<String,Object> map = new HashMap<String,Object>();
+		List<DeviceBoard> list = this.deviceService.getAllKeysByDevice(this.deviceId, this.boardId, this.keyId);
+		List<DeviceBoardData> resultList = new ArrayList<DeviceBoardData>();
+		if(list != null){
+			/**
+			 * boardId:"2"
+			 * deviceId:"1988606"
+			 * deviceName:"主板"
+			 * keyId:"1"
+			 * value1:"0x00000000"
+			 * value2:"0x00000000"
+			 */
+			for(DeviceBoard boardData : list){
+				//64位0 1
+				String btString = get32bitStringFromHex(boardData.getValue1()) + get32bitStringFromHex(boardData.getValue2());
+				for (int i = 63; i >= 0; i--) {
+					resultList.add(new DeviceBoardData(boardData.getDeviceId(), 
+							boardData.getDeviceName(),
+							boardData.getBoardId(),
+							boardData.getKeyId(),
+							Integer.toString(63 - i),
+							"子设备" + Integer.toString(64 - i),
+							String.valueOf(btString.charAt(i))
+							));
+				}
+			}
+			map.put("rows", resultList);
+			map.put("total", resultList.size());
+		}
+		this.jsonString = JsonUtils.getJAVABeanJSON(map);
+		try {
+			this.responseWriter(this.jsonString);
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage() , e);
+		}
+		return null;
+	}
+	
+	/**
+	 * 参数配置中 关子设备
+	 * @return
+	 */
+	public String stopSub(){
+		Map<String,Object> map = new HashMap<String,Object>();
+		if(this.deviceId!=null && this.boardId!=null&&
+				this.keyId!=null && this.positionId!=null){
+			map = this.deviceService.startShutSubDvice(this.deviceId, this.boardId, this.keyId, this.positionId, 0);
+		}else{
+			map.put("flag", false);
+			map.put("msg", "请先选择要关闭的子设备");
+		}
+		this.jsonString = JsonUtils.getJAVABeanJSON(map);
+		try {
+			this.responseWriter(this.jsonString);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	/**
+	 * 分发
+	 * @return
+	 */
+	public String distributeKey(){
+		Map<String,Object> map = new HashMap<String,Object>();
+		if(this.deviceId!=null && !this.deviceId.trim().equals("") && !this.deviceId.trim().equals(",")){
+			if(this.boardId!=null && !this.boardId.trim().equals("")){
+				if(this.keyId!=null && !this.keyId.trim().equals("")){
+					map = this.deviceService.distributeOrGetKey(this.deviceId,this.boardId, this.keyId, 2);
+				}else{
+					map.put("flag", false);
+					map.put("msg", "请先选择要分发的按键");
+				}
+			}else{
+				map.put("flag", false);
+				map.put("msg", "请先选择要分发的组号");
+			}
+		}else{
+			map.put("flag", false);
+			map.put("msg", "请先选择要分发的设备");
+		}
+		this.jsonString = JsonUtils.getJAVABeanJSON(map);
+		try {
+			this.responseWriter(this.jsonString);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	/**
+	 * 获取
+	 * @return
+	 */
+	public String getKey(){
+		Map<String,Object> map = new HashMap<String,Object>();
+		if(this.deviceId!=null && !this.deviceId.trim().equals("") && !this.deviceId.trim().equals(",")){
+			map = this.deviceService.distributeOrGetKey(this.deviceId, null, null, 3);
+		}else{
+			map.put("flag", false);
+			map.put("msg", "请先选择要获取的设备");
+		}
+		this.jsonString = JsonUtils.getJAVABeanJSON(map);
+		try {
+			this.responseWriter(this.jsonString);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	/**
+	 * 参数配置中 开子设备
+	 * @return
+	 */
+	public String startSub(){
+		Map<String,Object> map = new HashMap<String,Object>();
+		if(this.deviceId!=null && this.boardId!=null&&
+				this.keyId!=null && this.positionId!=null){
+			map = this.deviceService.startShutSubDvice(this.deviceId, this.boardId, this.keyId, this.positionId, 1);
+		}else{
+			map.put("flag", false);
+			map.put("msg", "请先选择要打开的子设备");
+		}
+		this.jsonString = JsonUtils.getJAVABeanJSON(map);
+		try {
+			this.responseWriter(this.jsonString);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	/**
+	 * 
+	 * @param sourceString  0x0000001f
+	 * @return  00000000000000000000000000011111
+	 */
+	private String get32bitStringFromHex(String sourceString){
+		if (sourceString == null || sourceString.length() != 10){
+			return "";
+		}
+		if (sourceString.equals("0xffffffff")){
+			return "99999999999999999999999999999999";
+		}
+		try{
+			int sourceInt = Integer.parseInt(sourceString.replace("0x", ""), 16);
+			String sBString = Integer.toBinaryString(sourceInt);
+			int length = sBString.length();
+			for (int i = 1; i <= 32-length; i++){
+				sBString = "0" + sBString;
+			}
+			return sBString;
+		}catch(Exception e){
+			return "";
+		}
+	}
+	
+	/**
 	 * 以下方法struts2使用 
 	 */
 
@@ -371,4 +568,20 @@ public class DeviceAction extends BaseAction {
 		this.option = option;
 	}
 
+	public void setDeviceId(String deviceId) {
+		this.deviceId = deviceId;
+	}
+
+	public void setBoardId(String boardId) {
+		this.boardId = boardId;
+	}
+
+	public void setKeyId(String keyId) {
+		this.keyId = keyId;
+	}
+
+	public void setPositionId(String positionId) {
+		this.positionId = positionId;
+	}
+	
 }

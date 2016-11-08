@@ -3,8 +3,6 @@ var catalog = catalog;
 /**
  * 更改easyui加载panel时的提示文字
  * 
- * @author 孙宇
- * 
  * @requires jQuery,EasyUI
  */
 $.extend($.fn.panel.defaults, {
@@ -12,8 +10,6 @@ $.extend($.fn.panel.defaults, {
 });
 /**
  * 更改easyui加载grid时的提示文字
- * 
- * @author 孙宇
  * 
  * @requires jQuery,EasyUI
  */
@@ -23,8 +19,6 @@ $.extend($.fn.datagrid.defaults, {
 
 /**
  * panel关闭时回收内存，主要用于layout使用iframe嵌入网页时的内存泄漏问题
- * 
- * @author 孙宇
  * 
  * @requires jQuery,EasyUI
  * 
@@ -54,8 +48,6 @@ $.extend($.fn.panel.defaults, {
 
 /**
  * 防止panel/window/dialog组件超出浏览器边界
- * 
- * @author 孙宇
  * 
  * @requires jQuery,EasyUI
  */
@@ -97,18 +89,16 @@ $.extend($.fn.panel.defaults, sy.onMove);
  * 
  * 用于datagrid/treegrid/tree/combogrid/combobox/form加载数据出错时的操作
  * 
- * @author 孙宇
- * 
  * @requires jQuery,EasyUI
  */
 sy.onLoadError = {
 	onLoadError : function(XMLHttpRequest) {
 		if (parent.$ && parent.$.messager) {
 			parent.$.messager.progress('close');
-			parent.$.messager.alert('错误', "请求失败！");
+			parent.$.messager.alert('错误', XMLHttpRequest.responseText);
 		} else {
 			$.messager.progress('close');
-			$.messager.alert('错误', "请求失败！");
+			$.messager.alert('错误', XMLHttpRequest.responseText);
 		}
 	}
 };
@@ -121,8 +111,6 @@ $.extend($.fn.form.defaults, sy.onLoadError);
 
 /**
  * 扩展combobox在自动补全模式时，检查用户输入的字符是否存在于下拉框中，如果不存在则清空用户输入
- * 
- * @author 孙宇
  * 
  * @requires jQuery,EasyUI
  */
@@ -164,8 +152,6 @@ $.extend($.fn.combobox.defaults, {
 /**
  * 扩展combogrid在自动补全模式时，检查用户输入的字符是否存在于下拉框中，如果不存在则清空用户输入
  * 
- * @author 孙宇
- * 
  * @requires jQuery,EasyUI
  */
 $.extend($.fn.combogrid.defaults, {
@@ -201,8 +187,6 @@ $.extend($.fn.combogrid.defaults, {
 /**
  * 扩展validatebox，添加新的验证功能
  * 
- * @author 孙宇
- * 
  * @requires jQuery,EasyUI
  */
 $.extend($.fn.validatebox.defaults.rules, {
@@ -215,41 +199,39 @@ $.extend($.fn.validatebox.defaults.rules, {
 });
 
 /**
- * 滚动条
- * 
- * @author 孙宇
+ * 等待提示
  * 
  * @requires jQuery,EasyUI
  */
 sy.progressBar = function(options) {
 	if (typeof options == 'string') {
+		console.log(options);
 		if (options == 'close') {
 			$('#syProgressBarDiv').dialog('destroy');
 		}
-	} else {
-		if ($('#syProgressBarDiv').length < 1) {
-			var opts = $.extend({
-				title : '&nbsp;',
-				closable : false,
-				width : 300,
-				height : 60,
-				modal : true,
-				content : '<div id="syProgressBar" class="easyui-progressbar" data-options="value:0"></div>'
-			}, options);
-			$('<div id="syProgressBarDiv"/>').dialog(opts);
-			$.parser.parse('#syProgressBarDiv');
-		} else {
-			$('#syProgressBarDiv').dialog('open');
-		}
-		if (options.value) {
-			$('#syProgressBar').progressbar('setValue', options.value);
+		else{
+			if ($('#syProgressBarDiv').length < 1) {
+				var opts = $.extend({
+					title : '&nbsp;',
+					closable : false,
+					width : 300,
+					height : 60,
+					modal : true,
+					content : '<div id="syProgressBar" class="easyui-progressbar" data-options="value:0,text:\'正在处理，请稍候...\'"></div>'
+				}, options);
+				$('<div id="syProgressBarDiv"/>').dialog(opts);
+				$.parser.parse('#syProgressBarDiv');
+			} else {
+				$('#syProgressBarDiv').dialog('open');
+			}
+			if (options.value) {
+				$('#syProgressBar').progressbar('setValue', options.value);
+			}
 		}
 	}
 };
 /**
  * 扩展tree和combotree，使其支持平滑数据格式
- * 
- * @author RM
  * 
  * @requires jQuery,EasyUI
  * 
@@ -264,16 +246,18 @@ sy.loadFilter = {
 			parentField = opt.parentField || 'parentId' ||'pid';
 			valueField = opt.valueField || 'id' || 'authorityId';
 			var i, l, treeData = [], tmpMap = [];
+			
 			//组件改造
+			//TODO: 刘磊@2016.04.06：待改造
 			for (i = 0, l = data.length; i < l; i++) {
 				var tempData = {};
-				tempData = data[i];
-				tempData.id = data[i].authorityId;
-				tempData.text = data[i].authorityName;
-//				tempData.checked = true;
-				tmpMap[data[i][idField]] = tempData;
 				
+				tempData = data[i];
+				tempData.id = data[i].authorityId || data[i].id;
+				tempData.text = data[i].authorityName || data[i].name || data[i].text;
+				tmpMap[data[i][idField]] = tempData;
 			}
+			
 			for (i = 0, l = data.length; i < l; i++) {
 				if (tmpMap[data[i][parentField]] && data[i][idField] != data[i][parentField]) {
 					if (!tmpMap[data[i][parentField]]['children'])
@@ -285,7 +269,9 @@ sy.loadFilter = {
 					treeData.push(data[i]);
 				}
 			}
+			
 			console.info(treeData);
+			
 			return treeData;
 		}
 		
@@ -296,8 +282,6 @@ $.extend($.fn.combotree.defaults, sy.loadFilter);
 $.extend($.fn.tree.defaults, sy.loadFilter);
 /**
  * 扩展treegrid，使其支持平滑数据格式
- * 
- * @author RM
  * 
  * @requires jQuery,EasyUI
  * 
@@ -333,8 +317,6 @@ $.extend($.fn.treegrid.defaults, {
 /**
  * 创建一个模式化的dialog
  * 
- * @author RM
- * 
  * @requires jQuery,EasyUI
  * 
  */
@@ -344,7 +326,6 @@ sy.modalDialog = function(options) {
 		width : 640,
 		height : 500,
 		modal : true,
-		
 		onClose : function() {
 			$(this).dialog('destroy');
 		}
@@ -357,8 +338,6 @@ sy.modalDialog = function(options) {
 };
 /**
  * 扩展  comboxtree 获取多个值
- * 
- * @author RM
  * 
  * @requires jQuery,EasyUI
  */
@@ -413,8 +392,6 @@ sy.modalDialog = function(options) {
 /**
  * 扩展combogrid 到Editor中
  * 
- * @author  RM
- * 
  * @requires jQuery,EasyUI
  */
 $.extend($.fn.datagrid.defaults.editors, {
@@ -447,8 +424,6 @@ $.extend($.fn.datagrid.defaults.editors, {
 });
 /**
  * 扩展combogrid 到Editor中
- * 
- * @author  RM
  * 
  * @requires jQuery,EasyUI
  */

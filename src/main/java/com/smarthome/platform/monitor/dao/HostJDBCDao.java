@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 import com.smarthome.core.base.dao.jdbc.BaseJDBCDao;
 import com.smarthome.core.util.JsonUtils;
 import com.smarthome.platform.monitor.bean.Command;
+import com.smarthome.platform.monitor.bean.DeviceBoard;
 import com.smarthome.platform.monitor.bean.SensorData;
 
 @Repository
@@ -138,6 +139,27 @@ public class HostJDBCDao extends BaseJDBCDao{
 			StringBuilder tempSql = new StringBuilder("delete from command where cid=?");
 			pstmt = connection.prepareStatement(tempSql.toString());
 			pstmt.setInt(1, cid);
+			pstmt.execute();
+		}catch(Exception e){
+			log.error(e.getMessage() , e);
+		}finally {
+			closeAllConnection(connection, pstmt, rs);
+		}
+	}
+
+	public static void updateDeviceKey(DeviceBoard deviceBoard) {
+		Connection connection = null;
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+		try{
+			connection = dataSource.getConnection();
+			StringBuilder tempSql = new StringBuilder("update device_key set value1=?, value2=? where device_id=? and board_id=? and key_id=?");
+			pstmt = connection.prepareStatement(tempSql.toString());
+			pstmt.setString(1, deviceBoard.getValue1());
+			pstmt.setString(2, deviceBoard.getValue2());
+			pstmt.setString(3, deviceBoard.getDeviceId());
+			pstmt.setString(4, deviceBoard.getBoardId());
+			pstmt.setString(5, deviceBoard.getKeyId());
 			pstmt.execute();
 		}catch(Exception e){
 			log.error(e.getMessage() , e);

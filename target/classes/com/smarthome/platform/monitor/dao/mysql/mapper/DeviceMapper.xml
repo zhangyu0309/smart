@@ -110,7 +110,11 @@
   </select>
   
  <delete id="deleteCommand" parameterType="java.lang.String" >
-	delete from command where device_id=#{_parameter,jdbcType=VARCHAR}
+	delete from command where device_id=#{_parameter,jdbcType=VARCHAR} and operation in (0,1)
+  </delete>
+  
+ <delete id="deleteDisOrGetCommand" parameterType="java.util.HashMap" >
+	delete from command where device_id=#{deviceId,jdbcType=VARCHAR} and operation in (2,3)
   </delete>
   
   <insert id="onoffDvice" parameterType="java.util.HashMap" >
@@ -118,6 +122,12 @@
     <trim prefix="(" suffix=")" suffixOverrides="," >
       <if test="device_id != null" >
         device_id,
+      </if>
+      <if test="boadrId != null" >
+        board_id,
+      </if>
+      <if test="keyId != null" >
+        key_id,
       </if>
       <if test="option != null" >
         operation,
@@ -127,9 +137,60 @@
        <if test="device_id != null" >
         #{device_id,jdbcType=VARCHAR},
       </if>
+      <if test="boadrId != null" >
+          #{boadrId,jdbcType=VARCHAR},
+      </if>
+      <if test="keyId != null" >
+          #{keyId,jdbcType=VARCHAR},
+      </if>
       <if test="option != null" >
         #{option,jdbcType=VARCHAR},
       </if>
     </trim>
   </insert>
+  
+  <select id="getDeviceList" statementType="CALLABLE" parameterType="java.lang.String"
+		resultType="com.smarthome.platform.monitor.bean.Device">
+		SELECT d.* FROM device_info d
+		<where>
+			<if test="_parameter !=null"> AND d.user_id =#{_parameter,jdbcType=VARCHAR}</if>
+		</where>
+  </select>
+
+  <insert id="addBoardKey" parameterType="com.smarthome.platform.monitor.bean.Device" >
+      insert device_key(device_id,board_id,key_id,value1,value2)
+		select #{device_id,jdbcType=VARCHAR},board_id,key_id,'0x00000000','0x00000000' from `board_info`
+  </insert>
+  
+  <delete id="delDeviceBoardInfoById" parameterType="com.smarthome.platform.monitor.bean.Device" >
+      delete from device_key where device_id=#{device_id,jdbcType=VARCHAR}
+  </delete>
+  
+   <select id="getAllKeysByDevice" statementType="CALLABLE" parameterType="java.util.HashMap"
+		resultType="com.smarthome.platform.monitor.bean.DeviceBoard">
+		SELECT c.device_id deviceId,d.device_name deviceName ,c.board_id boardId, c.key_id keyId, c.value1,c.value2 from device_key c,device_info d
+		<where>
+		    d.device_id = c.device_id AND d.parent_id='0'
+			<if test="deviceId !=null"> AND c.device_id =#{deviceId,jdbcType=VARCHAR}</if>
+			<if test="boardId !=null"> AND c.board_id =#{boardId,jdbcType=VARCHAR}</if>
+			<if test="keyId !=null"> AND c.key_id =#{keyId,jdbcType=VARCHAR}</if>
+		</where>
+		order by c.device_id,c.board_id,c.device_id
+	</select>
+	
+   <select id="getDeviceBoard" statementType="CALLABLE" parameterType="java.util.HashMap"
+		resultType="com.smarthome.platform.monitor.bean.DeviceBoard">
+		SELECT c.id, c.value1,c.value2 from device_key c
+		<where>
+			<if test="deviceId !=null"> AND c.device_id =#{deviceId,jdbcType=VARCHAR}</if>
+			<if test="boardId !=null"> AND c.board_id =#{boardId,jdbcType=VARCHAR}</if>
+			<if test="keyId !=null"> AND c.key_id =#{keyId,jdbcType=VARCHAR}</if>
+		</where>
+		limit 0,1
+	</select>
+   
+   <update id="updateKey" parameterType="com.smarthome.platform.monitor.bean.DeviceBoard">
+       update device_key set value1=#{value1,jdbcType=VARCHAR},value2=#{value2,jdbcType=VARCHAR} 
+       where id=#{id,jdbcType=VARCHAR}
+   </update>
 </mapper>

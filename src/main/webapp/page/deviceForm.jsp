@@ -108,7 +108,7 @@
                 	<input name="device.device_id" class="easyui-textbox" value="${device.device_id}" data-options="required:true" style="width: 200px;" />
                 </s:if>
                 <s:if test="editType == 1">
-                	<input class="easyui-textbox" value="${device.real_name}" readonly data-options="required:true" style="width: 200px;" />
+                	<input class="easyui-textbox" value="${device.device_id}" readonly data-options="required:true" style="width: 200px;" />
                 	<input name="device.device_id" value="${device.device_id}" type="hidden"/>
                 </s:if>
                 </td>

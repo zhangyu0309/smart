@@ -6,6 +6,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import com.smarthome.platform.monitor.bean.Device;
+import com.smarthome.platform.monitor.bean.DeviceBoard;
 import com.smarthome.platform.monitor.bean.SensorData;
 
 /**
@@ -36,5 +37,23 @@ public interface DeviceDao {
 	public int onoffDvice(Map<String, Object> map);
 
 	public void deleteCommand(String device_id);
+
+	public List<Device> getDeviceList(String string);
+
+	/**
+	 * 添加主设备七键配置参数
+	 * @param device
+	 */
+	public void addBoardKey(Device device);
+
+	public void delDeviceBoardInfoById(Device device);
+
+	public List<DeviceBoard> getAllKeysByDevice(Map<String, Object> map);
+
+	public DeviceBoard getDeviceBoard(Map<String, Object> paramMap);
+
+	public void updateKey(DeviceBoard db);
+
+	public void deleteDisOrGetCommand(Map<String, Object> map);
 
 }

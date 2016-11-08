@@ -45,15 +45,20 @@ public class AdminService {
 		Admin tempAdmin = this.adminDao.getAdminById(userId);
 		if (tempAdmin != null) {
 			if (tempAdmin.getPassword().equals(MD5.GetMD5Code(passwd))) {
-				if(tempAdmin.getEnable()==1){
-					map.put("flag", true);
-					map.put("msg", "登录成功！");
-					map.put("Admin", tempAdmin);
-					// 获取用户权限
+				if (userId.equals(tempAdmin.getUserId())){
+					if(tempAdmin.getEnable()==1){
+						map.put("flag", true);
+						map.put("msg", "登录成功！");
+						map.put("Admin", tempAdmin);
+						// 获取用户权限
+					}else{
+						map.put("flag", false);
+						map.put("msg", "该用户已被冻结，无法登录！");
+						map.put("Admin", tempAdmin);
+					}
 				}else{
 					map.put("flag", false);
-					map.put("msg", "该用户已被冻结，无法登录！");
-					map.put("Admin", tempAdmin);
+					map.put("msg", "该账号不存在");
 				}
 			} else {
 				map.put("flag", false);

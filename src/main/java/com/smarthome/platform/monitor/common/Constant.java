@@ -156,6 +156,11 @@ public class Constant {
 	public static final byte[] CLOSE = "CLOSE".getBytes();
 	
 	/**
+	 * 获取配置参数
+	 */
+	public static final byte[] GETNV = "GETNV".getBytes();
+	
+	/**
 	 * 查询所有传感器数据
 	 */
 	public static final byte[] GET_DATA = {0x3a,0x00,(byte) 0xff,0x04,(byte) 0xc1,0x23};
