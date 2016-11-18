@@ -449,7 +449,17 @@ public class DeviceAction extends BaseAction {
 	public String getKey(){
 		Map<String,Object> map = new HashMap<String,Object>();
 		if(this.deviceId!=null && !this.deviceId.trim().equals("") && !this.deviceId.trim().equals(",")){
-			map = this.deviceService.distributeOrGetKey(this.deviceId, null, null, 3);
+			if(this.boardId!=null && !this.boardId.trim().equals("")){
+				if(this.keyId!=null && !this.keyId.trim().equals("")){
+					map = this.deviceService.distributeOrGetKey(this.deviceId, this.boardId, this.keyId, 3);
+				}else{
+					map.put("flag", false);
+					map.put("msg", "请先选择要分发的按键");
+				}
+			}else{
+				map.put("flag", false);
+				map.put("msg", "请先选择要分发的组号");
+			}
 		}else{
 			map.put("flag", false);
 			map.put("msg", "请先选择要获取的设备");

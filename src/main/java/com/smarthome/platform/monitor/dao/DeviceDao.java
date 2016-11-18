@@ -56,4 +56,6 @@ public interface DeviceDao {
 
 	public void deleteDisOrGetCommand(Map<String, Object> map);
 
+	public int getUpdatedCount(Map<String, Object> paramMap);
+
 }

@@ -7,14 +7,18 @@ import java.util.Map;
 
 import javax.annotation.Resource;
 
+import org.apache.log4j.Logger;
 import org.springframework.stereotype.Service;
 
 import com.smarthome.core.util.ByteUtil;
+import com.smarthome.core.util.JsonUtils;
+import com.smarthome.platform.monitor.bean.Command;
 import com.smarthome.platform.monitor.bean.Device;
 import com.smarthome.platform.monitor.bean.DeviceBoard;
 import com.smarthome.platform.monitor.bean.SensorData;
 import com.smarthome.platform.monitor.dao.DeviceDao;
 import com.smarthome.platform.monitor.dao.DeviceJDBCDao;
+import com.smarthome.platform.monitor.dao.HostJDBCDao;
 
 /**
  * 设备管理业务逻辑层的处理
@@ -28,6 +32,8 @@ public class DeviceService {
 	private DeviceDao dao;
 	@Resource
 	private DeviceJDBCDao jdbcDao;
+	
+	private static Logger logger = Logger.getLogger(DeviceService.class.getName());
 	/**
 	 * 查询设备信息
 	 * @return
@@ -306,6 +312,7 @@ public class DeviceService {
 		map.put("keyId", keyId);
 		map.put("option", i);
 		dao.deleteDisOrGetCommand(map);
+		logger.info("add command:" + JsonUtils.getJAVABeanJSON(map));
 		if(dao.onoffDvice(map) > 0){
 			Device device = dao.getDeviceById(deviceId);
 			if (device.getOnline().equals("0")){
@@ -320,5 +327,99 @@ public class DeviceService {
 			map.put("msg", "发送指令失败，数据库连接异常！");
 		}
 		return map;
+	}
+	
+	public Map<String, Object> setConf(String device_id, String boardId,
+			String keyId, String hvalue, String lvalue) {
+		Map<String,Object> map = new HashMap<String,Object>();
+		Map<String,Object> paramMap = new HashMap<String,Object>();
+		if (hvalue.length() != 10 || !hvalue.startsWith("0x")){
+			map.put("flag", false);
+			map.put("msg", "0010");
+		}else if (lvalue.length() != 10 || !lvalue.startsWith("0x")){
+			map.put("flag", false);
+			map.put("msg", "0011");
+		}else if (!(boardId.equals("1") || boardId.equals("2") || boardId.equals("3"))){
+			map.put("flag", false);
+			map.put("msg", "0012");
+		}else if (!(keyId.equals("1") || keyId.equals("2") || keyId.equals("3")|| keyId.equals("4") 
+				|| keyId.equals("5")|| keyId.equals("6")|| keyId.equals("7"))){
+			map.put("flag", false);
+			map.put("msg", "0013");
+		}else{
+			paramMap.put("device_id", device_id);
+			paramMap.put("option", 4);
+			paramMap.put("boardId", boardId);
+			paramMap.put("keyId", keyId);
+			paramMap.put("content", "KEYCONF:"+keyId+","+hvalue+","+lvalue+".BOARD:"+boardId+".");
+			if(dao.onoffDvice(paramMap) > 0){
+				Device device = dao.getDeviceById(device_id);
+				if (device.getOnline().equals("0")){
+					map.put("flag", true);
+					map.put("msg", "0014");
+				}else {
+					map.put("flag", true);
+					map.put("msg", "0001");
+				}
+			}else{
+				map.put("flag", false);
+				map.put("msg", "0000");
+			}
+		}
+		return map;
+	}
+	
+	public Map<String, Object> getConf(String device_id, String boardId,
+			String keyId) {
+
+		Map<String,Object> map = new HashMap<String,Object>();
+		Map<String,Object> paramMap = new HashMap<String,Object>();
+		if (!(boardId.equals("1") || boardId.equals("2") || boardId.equals("3"))){
+			map.put("flag", false);
+			map.put("msg", "0012");
+		}else if (!(keyId.equals("1") || keyId.equals("2") || keyId.equals("3")|| keyId.equals("4") 
+				|| keyId.equals("5")|| keyId.equals("6")|| keyId.equals("7"))){
+			map.put("flag", false);
+			map.put("msg", "0013");
+		}else{
+			paramMap.put("device_id", device_id);
+			paramMap.put("option", 5);
+			paramMap.put("boardId", boardId);
+			paramMap.put("keyId", keyId);
+			Device device = dao.getDeviceById(device_id);
+			if (device.getOnline().equals("0")){
+				map.put("flag", false);
+				map.put("msg", "0014");
+			}else {
+				if(dao.onoffDvice(paramMap) > 0){
+					int updated = dao.getUpdatedCount(paramMap);
+					long start = System.currentTimeMillis();
+					while (true && (System.currentTimeMillis() - start <= 60000)) {
+						logger.info("wait for update...");
+						if(updated == 1){
+							DeviceBoard db = HostJDBCDao.getDeviceBoard(device_id, Integer.parseInt(boardId),
+									Integer.parseInt(keyId));
+							map.put("flag", true);
+							map.put("msg", "0001");
+							map.put("hvalue", db.getValue1());
+							map.put("lvalue", db.getValue2());
+							break;
+						}
+						try {
+							Thread.sleep(2000);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+						updated = dao.getUpdatedCount(paramMap);
+					}
+				}else {
+					map.put("flag", false);
+					map.put("msg", "0000");
+				}
+			}
+		}
+		HostJDBCDao.setKeyUpdated(new Command(0, device_id, 0, Integer.parseInt(boardId), Integer.parseInt(keyId), ""), 0);
+		return map;
+	
 	}
 }

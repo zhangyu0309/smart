@@ -13,10 +13,9 @@ import java.util.TimerTask;
 import org.apache.log4j.Logger;
 
 import com.smarthome.core.util.ByteUtil;
+import com.smarthome.core.util.JsonUtils;
 import com.smarthome.platform.monitor.bean.Command;
 import com.smarthome.platform.monitor.bean.DeviceBoard;
-import com.smarthome.platform.monitor.bean.DeviceBoardData;
-import com.smarthome.platform.monitor.bean.SensorData;
 import com.smarthome.platform.monitor.common.Constant;
 import com.smarthome.platform.monitor.dao.HostJDBCDao;
 
@@ -31,6 +30,8 @@ public class Server implements Runnable {
 	private static String device_id="";
 	private static byte[] tempdata = new byte[]{};
 	private static Map<String, Long> subMap = new HashMap<String, Long>(); 
+	
+	private static Command appGet = null;
 	public Server(Socket s) {
 		_s = s;
 		try {
@@ -99,7 +100,7 @@ public class Server implements Runnable {
 	private byte[] MessageHandle(byte[] msg) {
 		logger.info("HANDLE MESSAGE:" + new String(msg));
 		if (new String(msg).contains("Hello from wifi board")){
-			//Hello from wifi board My ID is: 10005600!
+			//Hello from wifi board My ID is: 1988606!
 			device_id = new String(msg).split("My ID is: ")[1].replace("!", "").replace("\n", "").trim();
 			sendMessage(Constant.START);
 			HostJDBCDao.online(1, device_id);
@@ -123,8 +124,8 @@ public class Server implements Runnable {
 		        	//sendMessage(Constant.GET_DATA);
 //		        	logger.info("get command");
 		        	Command command = HostJDBCDao.getCommand(device_id); 
-//		        	logger.info(JsonUtils.getJAVABeanJSON(command));
 		        	if (command != null){
+		        		logger.info("get command:" + JsonUtils.getJAVABeanJSON(command));
 		        		//开关设备
 		        		if(command.getOperation() == 0 || command.getOperation() == 1){
 		        			byte[] remsg = new byte[7];
@@ -155,10 +156,34 @@ public class Server implements Runnable {
 			        		}
 		        		}else if(command.getOperation() == 2){
 		        			//2分发
-		        			
+		        			DeviceBoard db = HostJDBCDao.getDeviceBoard(device_id, command.getBoard_id(), command.getKey_id());
+		        			//KEYCONF:1,0x00000000,0x0000001f.BOARD:1.
+		        			String distributeString = "KEYCONF:"+command.getKey_id() + 
+		        					","+db.getValue1()+","+db.getValue2()+".BOARD:"+command.getBoard_id()+".";
+		        			sendMessage(distributeString.getBytes());
+		        			HostJDBCDao.deleteCommand(command.getCid());
 		        		}else if(command.getOperation() == 3){
 		        			//3获取
-		        			if (sendMessage(Constant.GETNV)){
+		        			//SERGETKEY:BOARD:1,KEY:5.
+		        			if (sendMessage(("SERGETKEY:BOARD:"+command.getBoard_id()+",KEY:"+command.getKey_id()+"." ).getBytes())){
+		    		        	HostJDBCDao.deleteCommand(command.getCid());
+		    		        }else{
+		    		        	logger.info("send get key command fail1");
+		    		        }
+		        		}else if(command.getOperation() == 4){
+		        			//4直接发送
+		        			if (command.getContent() != null && !command.getContent().equals("")){
+		        				if (sendMessage(command.getContent().getBytes())){
+			    		        	HostJDBCDao.deleteCommand(command.getCid());
+			    		        }else{
+			    		        	logger.info("send content command fail1");
+			    		        }
+		        			}
+		        		}else if(command.getOperation() == 5){
+		        			//5应用get
+		        			appGet = command;
+		        			HostJDBCDao.setKeyUpdated(command, 0);
+		        			if (sendMessage(("SERGETKEY:BOARD:"+command.getBoard_id()+",KEY:"+command.getKey_id()+"." ).getBytes())){
 		    		        	HostJDBCDao.deleteCommand(command.getCid());
 		    		        }else{
 		    		        	logger.info("send get key command fail1");
@@ -174,26 +199,67 @@ public class Server implements Runnable {
 		}else if (new String(msg).startsWith("KEYCONF:DONE")){
 			//下发确认
 			return null;
-		}else if (new String(msg).startsWith("CHANLIST")){
-			//获取配置回复
+		}else if (new String(msg).startsWith("Key Board")) {
+			//Key Board 1 .
+			//Key:5-0xffffffff, 0xffffffff.
 			String currentBoard = "";
 			String currentKey = "";
 			for (String templine : new String(msg).split("\n")){
-				logger.info(templine);
 				if (templine.startsWith("Key Board")){
 					//Key Board 1 .
 					currentBoard = templine.replace("Key Board", "").replace(".", "").trim();
 				}
 				if (templine.startsWith("Key:")){
-					//Key:1-0x0, 0x1f.
 					currentKey = templine.split("-")[0].split(":")[1].trim();
-					HostJDBCDao.updateDeviceKey(new DeviceBoard(device_id, currentBoard, currentKey, 
-							templine.split("-")[1].split(",")[0].trim(), 
-							templine.split("-")[1].split(",")[1].trim()));
+					String value1 = templine.split("-")[1].split(",")[0].trim();
+					String value2 = templine.split("-")[1].split(",")[1].replace(".", "").trim();
+					if(value1.equalsIgnoreCase("0xffffffff")){
+						value1 = "0x00000000";
+					}
+					if(value2.equalsIgnoreCase("0xffffffff")){
+						value2 = "0x00000000";
+					}
+					if (value1.length() < 10){
+						value1 = formatValue(value1);
+					}
+					if (value2.length() < 10){
+						value2 = formatValue(value2);
+					}
+					DeviceBoard db = new DeviceBoard(device_id, currentBoard, currentKey, 
+							value1, value2
+							);
+					HostJDBCDao.updateDeviceKey(db);
+					logger.info("update local key:" + JsonUtils.getJAVABeanJSON(db));
 				}
 			}
+			if (appGet != null){
+				HostJDBCDao.setKeyUpdated(appGet, 1);
+				appGet = null;
+			}
 			return null;
-		}else if (msg[0] == 0x3a){
+		}
+		
+//		else if (new String(msg).startsWith("CHANLIST")){
+//			//获取配置回复
+//			String currentBoard = "";
+//			String currentKey = "";
+//			for (String templine : new String(msg).split("\n")){
+//				logger.info(templine);
+//				if (templine.startsWith("Key Board")){
+//					//Key Board 1 .
+//					currentBoard = templine.replace("Key Board", "").replace(".", "").trim();
+//				}
+//				if (templine.startsWith("Key:")){
+//					//Key:1-0x0, 0x1f.
+//					currentKey = templine.split("-")[0].split(":")[1].trim();
+//					HostJDBCDao.updateDeviceKey(new DeviceBoard(device_id, currentBoard, currentKey, 
+//							templine.split("-")[1].split(",")[0].trim(), 
+//							templine.split("-")[1].split(",")[1].trim()));
+//				}
+//			}
+//			return null;
+//		}
+		else if (msg[0] == 0x3a){
 			tempdata = new byte[]{};
 			//msg = new byte[]{0x3A,0x00,0x01,0x04,0x3F,0x23,
 			//0x3A,0x00,0x01,0x02,0x13,0x21,0x12,(byte) 0xA5,(byte) 0xBC,0x23,0x3A,0x00,0x02,0x02,0x13,0x21,0x12,(byte) 0xA5,(byte) 0xBC,0x23};
@@ -202,39 +268,26 @@ public class Server implements Runnable {
 				//底层确认数据帧，无需处理
 				return null;
 			}
-			if (msg.length % Constant.data_length == 6){
-				//6字节起始位 + n个数据帧
-				int sensors = (msg.length - 6) / Constant.data_length;
-				//传感器个数
-				Map<String, String> checkMap = new HashMap<String, String>();
-				//
-				for (int i=0; i < sensors; i++){
-					String sub_id = ByteUtil.toHex(msg[5 + i*Constant.data_length + 2]).toLowerCase() +
-							ByteUtil.toHex(msg[5 + i*Constant.data_length + 3]).toLowerCase();
-					if (checkMap.containsKey(sub_id)){
-						continue;
-					}
-					checkMap.put(sub_id, "");
-					String temp1 = Integer.toString(ByteUtil.bytes2int(new byte[]{0x00,0x00,0x00,msg[5 + i*Constant.data_length + 5]}));
-					String wet1 = Integer.toString(ByteUtil.bytes2int(new byte[]{0x00,0x00,0x00,msg[5 + i*Constant.data_length + 6]}));
-					String temp2 = Integer.toString(ByteUtil.bytes2int(new byte[]{0x00,0x00,0x00,msg[5 + i*Constant.data_length + 7]}));
-					String wet2 = Integer.toString(ByteUtil.bytes2int(new byte[]{0x00,0x00,msg[5 + i*Constant.data_length + 8],
-							msg[5 + i*Constant.data_length + 9]}));
-					String light = Integer.toString(ByteUtil.bytes2int(new byte[]{msg[5 + i*Constant.data_length + 10],
-							msg[5 + i*Constant.data_length + 11],
-							msg[5 + i*Constant.data_length + 12],
-							msg[5 + i*Constant.data_length + 13]}));
-					subMap.put(device_id + "-" + sub_id, System.currentTimeMillis());
-					HostJDBCDao.saveData(new SensorData(device_id + "-" + sub_id, temp1, wet1, temp2, wet2, light));
-				}
-				return null;
-			}
 			if (msg.length % Constant.data_length == 0){
 				//n个数据帧
 				int sensors = msg.length / Constant.data_length;
-				//传感器个数
+				//解决重复数据
 				Map<String, String> checkMap = new HashMap<String, String>();
-				//
+//				SendBuf[0] = 0x3A;                          
+//				  SendBuf[1] = HI_UINT16( EndDeviceID );
+//				  SendBuf[2] = LO_UINT16( EndDeviceID );
+//				  SendBuf[3] = 0x02;                       //FC
+//				  SendBuf[4] = dev_on_off_status;//开关设备，这一位表示当前状态  
+//				  SendBuf[5] = 0;
+//				  SendBuf[6] = 0;//GetGas();  //获取气体传感器的状态  
+//				  SendBuf[7] = 0;//HI_UINT16(SoilHumValue);//GetLamp(); //获得灯的状态
+//				  SendBuf[8] = 0;//LO_UINT16(SoilHumValue);
+//				  SendBuf[9] = 0;
+//				  SendBuf[10] = 0;
+//				  SendBuf[11] = 0;
+//				  SendBuf[12] = 0;
+//				  SendBuf[18] = XorCheckSum(SendBuf, 18);
+//				  SendBuf[19] = 0x23;
 				for (int i=0; i < sensors; i++){
 					String sub_id = ByteUtil.toHex(msg[i*Constant.data_length + 1]).toLowerCase() +
 							ByteUtil.toHex(msg[i*Constant.data_length + 2]).toLowerCase();
@@ -242,16 +295,9 @@ public class Server implements Runnable {
 						continue;
 					}
 					checkMap.put(sub_id, "");
-					String temp1 = Integer.toString(ByteUtil.bytes2int(new byte[]{0x00,0x00,0x00,msg[i*Constant.data_length + 4]}));
-					String wet1 = Integer.toString(ByteUtil.bytes2int(new byte[]{0x00,0x00,0x00,msg[i*Constant.data_length + 5]}));
-					String temp2 = Integer.toString(ByteUtil.bytes2int(new byte[]{0x00,0x00,0x00,msg[i*Constant.data_length + 6]}));
-					String wet2 = Integer.toString(ByteUtil.bytes2int(new byte[]{0x00,0x00,msg[i*Constant.data_length + 7],msg[i*Constant.data_length + 8]}));
-					String light = Integer.toString(ByteUtil.bytes2int(new byte[]{msg[i*Constant.data_length + 9],
-							msg[i*Constant.data_length + 10],
-							msg[i*Constant.data_length + 11],
-							msg[i*Constant.data_length + 12]}));
+					int onoff = ByteUtil.bytes2int(new byte[]{0x00,0x00,0x00,msg[i*Constant.data_length + 4]});
 					subMap.put(device_id + "-" + sub_id, System.currentTimeMillis());
-					HostJDBCDao.saveData(new SensorData(device_id + "-" + sub_id, temp1, wet1, temp2, wet2, light));
+					HostJDBCDao.updateSubDeviceStatus(device_id + "-" + sub_id, onoff);
 				}
 				return null;
 			}
@@ -259,7 +305,7 @@ public class Server implements Runnable {
 			byte[] datanow = new byte[tempdata.length + msg.length];
 			System.arraycopy(tempdata, 0, datanow, 0, tempdata.length);
 			System.arraycopy(msg, 0, datanow, tempdata.length, msg.length);
-			if ((datanow.length % Constant.data_length == 6 || datanow.length % Constant.data_length == 0)
+			if (datanow.length % Constant.data_length == 0
 					 && datanow[datanow.length - 1] == 0x23){
 				//零碎数据已经组合完整，开始处理
 				MessageHandle(datanow);
@@ -272,7 +318,7 @@ public class Server implements Runnable {
 			byte[] datanow = new byte[tempdata.length + msg.length];
 			System.arraycopy(tempdata, 0, datanow, 0, tempdata.length);
 			System.arraycopy(msg, 0, datanow, tempdata.length, msg.length);
-			if ((datanow.length % Constant.data_length == 6 || datanow.length % Constant.data_length == 0)
+			if (datanow.length % Constant.data_length == 0
 					 && datanow[datanow.length - 1] == 0x23){
 				//零碎数据已经组合完整，开始处理
 				MessageHandle(datanow);
@@ -284,6 +330,15 @@ public class Server implements Runnable {
 		return null;
 	}
 	
+	private String formatValue(String value) {
+		int length = value.length();
+		String added = "";
+		for(int i = 0; i < 10 - length; i++){
+			added = added + "0";
+		}
+		return "0x" + added + value.replace("0x", "");
+	}
+
 	/**
 	 * 回复信息
 	 * @param response
@@ -297,6 +352,7 @@ public class Server implements Runnable {
 					trytime++;
 					os.write(response);
 					logger.info("response:" + ByteUtil.ListBytes(response));//new String(response));
+					logger.info("-->:" + new String(response));//;
 					send = true;
 					break;
 				} catch (Exception e) {

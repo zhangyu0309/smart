@@ -1,9 +1,9 @@
 package com.smarthome.core.util;
 
 /**
- * 日期处理通用类
+ * byte处理通用类
  * 
- * @author RM
+ * @author zy
  * @version 1.0
  */
 public class ByteUtil {
@@ -44,33 +44,6 @@ public class ByteUtil {
 		return value;
 	}
 
-	/**
-	 * 根据指定长度返回byte[]
-	 * 
-	 * @param op
-	 *            OP域，第一个byte
-	 * @param str
-	 *            需要转换的字符串
-	 * @param len
-	 *            需要byte[]的长度
-	 * @return
-	 */
-	public static byte[] getBytes(byte op, String str, int len) {
-		byte[] result = new byte[len];
-		result[0] = op;
-		byte[] strBytes = str.getBytes();
-		if (strBytes.length >= len - 1) {
-			for (int i = 1; i < len; i++) {
-				result[i] = strBytes[i - 1];
-			}
-		} else {
-			System.arraycopy(strBytes, 0, result, 1, strBytes.length);
-			for (int i = strBytes.length + 1; i < len; i++) {
-				result[i] = (byte) ' ';
-			}
-		}
-		return result;
-	}
 
 	/**
 	 * byte转十六进制
@@ -117,12 +90,17 @@ public class ByteUtil {
 				| (((long) bb[6] & 0xff) << 8) | (((long) bb[7] & 0xff) << 0));
 	}
 
-	public static void main(String[] args) {
-		byte[] b = new byte[] { (byte) 0xe2, (byte) 0xe3, (byte) 0xe4,
-				(byte) 0xea, (byte) 0xca, (byte) 0xda, (byte) 0xea, (byte) 0xfa };
-		System.out.println(byte2Long(b));
-	}
+//	public static void main(String[] args) {
+//		byte[] b = new byte[] { (byte) 0xe2, (byte) 0xe3, (byte) 0xe4,
+//				(byte) 0xea, (byte) 0xca, (byte) 0xda, (byte) 0xea, (byte) 0xfa };
+//		System.out.println(byte2Long(b));
+//	}
 
+	/**
+	 * byte转bit字符串
+	 * @param by
+	 * @return
+	 */
 	public static String byte2Bit(byte by) {
 		StringBuffer sb = new StringBuffer();
 		sb.append((by >> 7) & 0x1).append((by >> 6) & 0x1)
@@ -132,6 +110,11 @@ public class ByteUtil {
 		return sb.toString();
 	}
 
+	/**
+	 * bit字符串转byte
+	 * @param bit
+	 * @return
+	 */
 	public static byte bitToByte(String bit) {
 		int re, len;
 		if (null == bit) {

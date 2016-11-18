@@ -61,6 +61,11 @@ public class Device {
 	 */
 	private String real_name;
 	
+	/**
+	 * 0关 1开
+	 */
+	private int onoff;
+	
 	public String getDevice_id() {
 		return device_id;
 	}
@@ -147,6 +152,14 @@ public class Device {
 
 	public void setReal_name(String real_name) {
 		this.real_name = real_name;
+	}
+
+	public int getOnoff() {
+		return onoff;
+	}
+
+	public void setOnoff(int onoff) {
+		this.onoff = onoff;
 	}
 	
 }

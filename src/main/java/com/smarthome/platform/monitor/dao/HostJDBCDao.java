@@ -115,7 +115,8 @@ public class HostJDBCDao extends BaseJDBCDao{
 			pstmt.setString(1, device_id + "%");
 			rs = pstmt.executeQuery();
 			while(rs.next()){
-				return new Command(rs.getInt("cid"), rs.getString("device_id"), rs.getInt("operation"));
+				return new Command(rs.getInt("cid"), rs.getString("device_id"), rs.getInt("operation"), 
+						rs.getInt("board_id"), rs.getInt("key_id"), rs.getString("content"));
 			}
 		}catch(Exception e){
 			e.printStackTrace();
@@ -165,6 +166,83 @@ public class HostJDBCDao extends BaseJDBCDao{
 			log.error(e.getMessage() , e);
 		}finally {
 			closeAllConnection(connection, pstmt, rs);
+		}
+	}
+
+	public static DeviceBoard getDeviceBoard(String device_id, int board_id,
+			int key_id) {
+		Connection connection = null;
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+		try{
+			connection = dataSource.getConnection();
+			StringBuilder tempSql = new StringBuilder("select * from device_key ");
+			tempSql.append(" where device_id = ");
+			tempSql.append(" ? and board_id=? and key_id=? limit 0,1");
+			pstmt = connection.prepareStatement(tempSql.toString());
+			pstmt.setString(1, device_id);
+			pstmt.setInt(2, board_id);
+			pstmt.setInt(3, key_id);
+			rs = pstmt.executeQuery();
+			while(rs.next()){
+				return new DeviceBoard(rs.getString("device_id"), rs.getString("board_id"), rs.getString("key_id"),
+						rs.getString("value1"), rs.getString("value2"));
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+			log.error(e.getMessage());
+		}finally {
+			closeAllConnection(connection, pstmt, rs);
+		}
+		return null;
+	}
+
+	/**
+	 * 更新开关状态 仅限子设备
+	 * @param deviceId
+	 * @param onoff
+	 */
+	public static void updateSubDeviceStatus(String deviceId, int onoff) {
+		if (deviceId.contains("-") && !deviceId.endsWith("-")){
+			Connection connection = null;
+			PreparedStatement pstmt = null;
+			try{
+				connection = dataSource.getConnection();
+				StringBuilder tempSql = new StringBuilder("update device_info ");
+				tempSql.append("set onoff=? where device_id = ?");
+				pstmt = connection.prepareStatement(tempSql.toString());
+				pstmt.setInt(1, onoff);
+				pstmt.setString(2, deviceId);
+				pstmt.execute();
+				log.info("device:" + deviceId + "-->" + onoff);
+			}catch(Exception e){
+				e.printStackTrace();
+				log.error(e.getMessage());
+			}finally {
+				closeAllConnection(connection, pstmt, null);
+			}
+		}
+	}
+
+	public static void setKeyUpdated(Command command, int i) {
+		Connection connection = null;
+		PreparedStatement pstmt = null;
+		System.out.println(JsonUtils.getJAVABeanJSON(command));
+		try{
+			connection = dataSource.getConnection();
+			StringBuilder tempSql = new StringBuilder("update device_key ");
+			tempSql.append("set updated=? where device_id = ? and board_id=? and key_id=?");
+			pstmt = connection.prepareStatement(tempSql.toString());
+			pstmt.setInt(1, i);
+			pstmt.setString(2, command.getDevice_id());
+			pstmt.setInt(3, command.getBoard_id());
+			pstmt.setInt(4, command.getKey_id());
+			pstmt.execute();
+		}catch(Exception e){
+			e.printStackTrace();
+			log.error(e.getMessage());
+		}finally {
+			closeAllConnection(connection, pstmt, null);
 		}
 	}
 }
