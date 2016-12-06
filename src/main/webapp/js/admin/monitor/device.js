@@ -67,12 +67,16 @@ $(function() {
 									field : 'parent_id',
 									title : '设备类型',
 									width : 100,
-									formatter : function(value) {
+									formatter : function(value, data) {
 										if (value == '0') {
 											var s = '主控板';
 											return s;
 										} else {
-											return '子设备';
+											if(data.device_type == 1){
+												return '电机';
+											}else {
+												return '开关';
+											}
 										} 
 									}
 								},

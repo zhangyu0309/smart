@@ -8,6 +8,7 @@ import org.apache.log4j.Logger;
 import com.smarthome.platform.monitor.bean.Device;
 import com.smarthome.platform.monitor.bean.DeviceBoard;
 import com.smarthome.platform.monitor.bean.SensorData;
+import com.smarthome.platform.monitor.bean.Timer;
 
 /**
  * 
@@ -57,5 +58,47 @@ public interface DeviceDao {
 	public void deleteDisOrGetCommand(Map<String, Object> map);
 
 	public int getUpdatedCount(Map<String, Object> paramMap);
+
+	public DeviceBoard getDeviceBoardById(Map<String, Object> paramMap);
+
+	public void editScene(Map<String, Object> paramMap);
+
+	public int getUserDeviceCount(Map<String, Object> paramMap);
+
+	public void renameUserDeviceCount(Map<String, Object> paramMap);
+
+	public void addSubDevice(Map<String, Object> paramMap);
+
+	public List<DeviceBoard> getSceneList(Map<String, Object> paramMap);
+
+	public void updateScene(Map<String, Object> paramMap);
+
+	public void closeAllScene(Map<String, Object> paramMap);
+
+	public void deleteSceneCommand(Map<String, Object> paramMap);
+
+	public void insertSceneCommand(Map<String, Object> paramMap);
+
+	public void addSceneCommand(Map<String, Object> paramMap);
+
+	public List<Timer> getAllTimersByDevice(Map<String, Object> map);
+
+	public int getSingleExistsTimer(Timer timer);
+
+	public int getReExistsTimer(Timer timer);
+
+	public void addSingleTimer(Timer timer);
+
+	public void addReTimer(Timer timer);
+
+	public void deleteTimer(Map<String, Object> param);
+
+	public void startTimer(Map<String, Object> param);
+
+	public void stopTimer(Map<String, Object> param);
+
+	public void insertTimerCommand(Map<String, Object> param);
+
+	public Timer getTimerById(Map<String, Object> param);
 
 }

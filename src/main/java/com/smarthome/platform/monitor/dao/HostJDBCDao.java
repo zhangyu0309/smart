@@ -3,6 +3,11 @@ package com.smarthome.platform.monitor.dao;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
 
 import javax.sql.DataSource;
 
@@ -244,5 +249,67 @@ public class HostJDBCDao extends BaseJDBCDao{
 		}finally {
 			closeAllConnection(connection, pstmt, null);
 		}
+	}
+
+	/**
+	 * 查询当前定时任务
+	 * @param device_id
+	 * @return
+	 */
+	public static List<com.smarthome.platform.monitor.bean.Timer> getTimerList(
+			String device_id) {
+		List<com.smarthome.platform.monitor.bean.Timer> result = new ArrayList<com.smarthome.platform.monitor.bean.Timer>();
+		Connection connection = null;
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+		try{
+			connection = dataSource.getConnection();
+//			select id,device_id,type,action_time,weeks,week_time,action from device_timer where 
+//			device_id like '1988606%' and ((type=0 and DATEDIFF(CURRENT_TIMESTAMP,action_time)=1) or 
+//			(type=1 and weeks like '%7%'))
+//			and `status`=1 order by add_time desc limit 0,7
+			StringBuilder tempSql = new StringBuilder("select id,device_id,type,action_time,weeks,week_time,action from device_timer ");
+			tempSql.append(" where device_id like ? ");
+			tempSql.append(" and ((type=0 and DATEDIFF(CURRENT_TIMESTAMP,action_time)=0) or ");
+			tempSql.append(" (type=1 and weeks like ?)) ");
+			tempSql.append(" and `status`=1 order by week_time");
+			pstmt = connection.prepareStatement(tempSql.toString());
+			pstmt.setString(1, device_id + "%");
+			pstmt.setString(2, "%" + getWeek() + "%");
+			rs = pstmt.executeQuery();
+			while(rs.next()){
+				com.smarthome.platform.monitor.bean.Timer tempTimer = new com.smarthome.platform.monitor.bean.Timer();
+				tempTimer.setId(rs.getString("id"));
+				tempTimer.setDevice_id(rs.getString("device_id"));
+				tempTimer.setType(rs.getString("type"));
+				tempTimer.setAction_time(rs.getString("action_time"));
+				tempTimer.setWeek_time(rs.getString("week_time"));
+				tempTimer.setAction(rs.getString("action"));
+				tempTimer.setWeeks(rs.getString("weeks"));
+				result.add(tempTimer);
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+			log.error(e.getMessage());
+		}finally {
+			closeAllConnection(connection, pstmt, rs);
+		}
+		return result;
+	}
+	
+	/**
+	 * 当前周几
+	 * @return
+	 */
+	private static String getWeek(){
+		String[] weekDays = {"7", "1", "2", "3", "4", "5", "6"};
+		Calendar cal = Calendar.getInstance();
+		cal.setTime(new Date());
+	    int week = cal.get(Calendar.DAY_OF_WEEK) - 1;
+//	    if (week < 0){
+//	    	week = 0;
+//	    }
+//	    week ++;
+	    return weekDays[week];
 	}
 }

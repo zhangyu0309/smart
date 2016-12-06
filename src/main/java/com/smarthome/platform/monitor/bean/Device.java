@@ -66,6 +66,11 @@ public class Device {
 	 */
 	private int onoff;
 	
+	/**
+	 * 子设备有效 0开关 1电机 后续可扩展
+	 */
+	private int device_type;
+	
 	public String getDevice_id() {
 		return device_id;
 	}
@@ -160,6 +165,14 @@ public class Device {
 
 	public void setOnoff(int onoff) {
 		this.onoff = onoff;
+	}
+
+	public int getDevice_type() {
+		return device_type;
+	}
+
+	public void setDevice_type(int device_type) {
+		this.device_type = device_type;
 	}
 	
 }

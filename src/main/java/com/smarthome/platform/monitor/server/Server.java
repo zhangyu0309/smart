@@ -5,8 +5,14 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketException;
+import java.text.ParseException;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -20,18 +26,23 @@ import com.smarthome.platform.monitor.common.Constant;
 import com.smarthome.platform.monitor.dao.HostJDBCDao;
 
 public class Server implements Runnable {
-	private static Logger logger = Logger.getLogger(Server.class.getName());
+	private Logger logger = Logger.getLogger(Server.class.getName());
 	private final Socket _s;
 	Timer timer = new Timer();
 	byte[] reqDate = null;
 	long lastReceiveTime;// 上次收到数据包的时间
 	InputStream in = null;
 	OutputStream os = null;
-	private static String device_id="";
-	private static byte[] tempdata = new byte[]{};
-	private static Map<String, Long> subMap = new HashMap<String, Long>(); 
-	
-	private static Command appGet = null;
+	private String device_id="";
+	private byte[] tempdata = new byte[]{};
+	private Map<String, Long> subMap = new HashMap<String, Long>(); 
+	private boolean timerHandled = true;
+	private Command appGet = null;
+	Calendar timerCal = Calendar.getInstance();
+	/**
+	 * 接收到的心跳数量
+	 */
+	private long heartBeats = 0;
 	public Server(Socket s) {
 		_s = s;
 		try {
@@ -99,12 +110,34 @@ public class Server implements Runnable {
 	 */
 	private byte[] MessageHandle(byte[] msg) {
 		logger.info("HANDLE MESSAGE:" + new String(msg));
+		if (new String(msg).startsWith("DBG")) {
+			return null;
+		}
+		if (new String(msg).startsWith("get_timer")) {
+			sendTimer();
+			return null;
+		}
+		//heart beats
+		if (new String(msg).startsWith("heart beats")) {
+			//第一次心跳下发定时策略
+			if(heartBeats == 0){
+				sendTimer();
+			}
+			heartBeats ++;
+			//TIMING:21:28:16,08/17/2017.
+			//每60次心跳对时一次
+			if (heartBeats % 60 == 0){
+				sendMessage(("TIMING:" + Constant.sdFormat.format(new Date()) + ".").getBytes());
+			}
+			return null;
+		}
 		if (new String(msg).contains("Hello from wifi board")){
 			//Hello from wifi board My ID is: 1988606!
 			device_id = new String(msg).split("My ID is: ")[1].replace("!", "").replace("\n", "").trim();
 			sendMessage(Constant.START);
 			HostJDBCDao.online(1, device_id);
-		}else if (new String(msg).startsWith("Ok Fd:")){
+		}else if (new String(msg).contains("Ok Fd:")){
+			sendMessage(("TIMING:" + Constant.sdFormat.format(new Date()) + ".").getBytes());
 			//定期获取传感器数据
 			TimerTask task = new TimerTask() {  
 		        @Override  
@@ -113,10 +146,23 @@ public class Server implements Runnable {
 		        	for (Map.Entry<String, Long> entry : subMap.entrySet()) {
 		        		if (System.currentTimeMillis() - entry.getValue() > 120000){
 		        			HostJDBCDao.online(0, entry.getKey());
-		        		}
-		        	}  
+		        		}else {
+		        			HostJDBCDao.online(1, entry.getKey());
+						}
+		        	}
 		        }  
-		    };  
+		    }; 
+		  //0点下发定时策略
+			TimerTask task2 = new TimerTask() {  
+		        @Override  
+		        public void run() {
+		        	timerCal.setTime(new Date());
+		        	if (timerCal.get(Calendar.HOUR_OF_DAY) == 0 && 
+		        			timerCal.get(Calendar.MINUTE)  == 0){
+		        		sendTimer();
+		        	}
+		        }  
+		    }; 
 		  //定期查询开关设备信息 并发送到主控板
 			TimerTask task1 = new TimerTask() {  
 		        @Override  
@@ -127,7 +173,11 @@ public class Server implements Runnable {
 		        	if (command != null){
 		        		logger.info("get command:" + JsonUtils.getJAVABeanJSON(command));
 		        		//开关设备
-		        		if(command.getOperation() == 0 || command.getOperation() == 1){
+		        		if(command.getOperation() == 0 || command.getOperation() == 1 || command.getOperation() == 7){
+		        			//电机停的动作在数据库中保存为7 底层通信实际为2
+		        			if (command.getOperation() == 7){
+		        				command.setOperation(2);
+		        			}
 		        			byte[] remsg = new byte[7];
 			        		remsg[0] = 0x3a;
 			        		if (command.getDevice_id().contains("-") && !command.getDevice_id().endsWith("-")){
@@ -188,12 +238,34 @@ public class Server implements Runnable {
 		    		        }else{
 		    		        	logger.info("send get key command fail1");
 		    		        }
+		        		}else if(command.getOperation() == 6){
+		        			//6开启场景
+		        			byte[] remsg = new byte[7];
+			        		remsg[0] = 0x3a;
+			        		logger.info("open scene:" + command.getDevice_id() + "," + command.getBoard_id()
+			        				 + "," + command.getKey_id());
+		    		        remsg[1] = 0x01;
+		    		        remsg[2] = (byte) command.getBoard_id();
+		    		        remsg[3] = 0x4a;
+		    		        remsg[4] = (byte) command.getKey_id();
+		    		        remsg[5] = (byte) (remsg[0] ^ remsg[1] ^ remsg[2] ^ remsg[3] ^ remsg[4]);
+		    		        remsg[6] = 0x23;
+		    		        if (sendMessage(remsg)){
+		    		        	HostJDBCDao.deleteCommand(command.getCid());
+		    		        }else{
+		    		        	logger.info("send command fail");
+		    		        }
+		    		        //下发定时策略
+		        		}else if(command.getOperation() == 8){
+		        			sendTimer();
+		        			HostJDBCDao.deleteCommand(command.getCid());
 		        		}
 		        	}
 		        }  
 		    }; 
 		    timer.scheduleAtFixedRate(task, 0, 60000);
 		    timer.scheduleAtFixedRate(task1, 0, 1000);
+		    timer.scheduleAtFixedRate(task2, 0, 50000);
 		}else if (new String(msg).startsWith("local_client_fd is not connect to")){
 			sendMessage(Constant.START);
 		}else if (new String(msg).startsWith("KEYCONF:DONE")){
@@ -207,12 +279,16 @@ public class Server implements Runnable {
 			for (String templine : new String(msg).split("\n")){
 				if (templine.startsWith("Key Board")){
 					//Key Board 1 .
+					//Key Board 1 .Key:2-0x0, 0x1.Scop:0x1-0x40.
 					currentBoard = templine.replace("Key Board", "").replace(".", "").trim();
 				}
 				if (templine.startsWith("Key:")){
 					currentKey = templine.split("-")[0].split(":")[1].trim();
 					String value1 = templine.split("-")[1].split(",")[0].trim();
 					String value2 = templine.split("-")[1].split(",")[1].replace(".", "").trim();
+					if (templine.contains("Scop")){
+						value2 = templine.split("-")[1].split(",")[1].split("\\.")[0].trim();
+					}
 					if(value1.equalsIgnoreCase("0xffffffff")){
 						value1 = "0x00000000";
 					}
@@ -268,6 +344,11 @@ public class Server implements Runnable {
 				//底层确认数据帧，无需处理
 				return null;
 			}
+			if (msg.length == 27 && msg[msg.length - 1] == 0x23 && msg[3] == 0x4b){
+				//定时策略底层确认数据帧，无需处理
+				timerHandled = true;
+				return null;
+			}
 			if (msg.length % Constant.data_length == 0){
 				//n个数据帧
 				int sensors = msg.length / Constant.data_length;
@@ -297,6 +378,7 @@ public class Server implements Runnable {
 					checkMap.put(sub_id, "");
 					int onoff = ByteUtil.bytes2int(new byte[]{0x00,0x00,0x00,msg[i*Constant.data_length + 4]});
 					subMap.put(device_id + "-" + sub_id, System.currentTimeMillis());
+					HostJDBCDao.online(1, device_id + "-" + sub_id);
 					HostJDBCDao.updateSubDeviceStatus(device_id + "-" + sub_id, onoff);
 				}
 				return null;
@@ -329,7 +411,71 @@ public class Server implements Runnable {
 		}
 		return null;
 	}
-	
+	/**
+	 * 下发定时策略
+	 */
+	private void sendTimer() {
+		List<com.smarthome.platform.monitor.bean.Timer> timerList = HostJDBCDao.getTimerList(device_id);
+		if (timerList != null && timerList.size() > 0){
+			//定时策略中所有的子设备列表
+			Set<String> deviceidsList = new HashSet<String>();
+			for (com.smarthome.platform.monitor.bean.Timer timer : timerList){
+				deviceidsList.add(timer.getDevice_id());
+			}
+			for(String did : deviceidsList){
+				byte[] timerBytes = new byte[27];
+				timerBytes[0] = 0x3a;
+				String subid = did.split("-")[1];
+				timerBytes[1] = Byte.parseByte(subid.substring(0, 2), 16);
+				timerBytes[2] = Byte.parseByte(subid.substring(2, 4), 16);
+				timerBytes[3] = 0x4b;
+				int setCount = 0;
+				for(com.smarthome.platform.monitor.bean.Timer timer : timerList){
+					if (timer.getDevice_id().equals(did)){
+						if (timer.getType().equals("0")){
+//							2016-12-03 14:31:38
+							Date adtionDate = null;
+							try {
+								adtionDate = Constant.sdc.parse(timer.getAction_time());
+							} catch (ParseException e) {
+								e.printStackTrace();
+							}
+							Calendar cal = Calendar.getInstance();
+							cal.setTime(adtionDate);
+							timerBytes[3 + setCount * 3 + 1] = Byte.parseByte(Integer.toString(cal.get(Calendar.HOUR_OF_DAY), 16), 16);
+							timerBytes[3 + setCount * 3 + 2] = Byte.parseByte(Integer.toString(cal.get(Calendar.MINUTE), 16), 16);
+							timerBytes[3 + setCount * 3 + 3] = (byte) Integer.parseInt(timer.getAction());
+						}
+						else if (timer.getType().equals("1")){
+//							 14:31:38
+							timerBytes[3 + setCount * 3 + 1] = Byte.parseByte(Integer.toString(Integer.parseInt(timer.getWeek_time().split(":")[0]), 16), 16);
+							timerBytes[3 + setCount * 3 + 2] = Byte.parseByte(Integer.toString(Integer.parseInt(timer.getWeek_time().split(":")[1]), 16), 16);
+							timerBytes[3 + setCount * 3 + 3] = (byte) Integer.parseInt(timer.getAction());
+						}
+						setCount ++;
+					}
+				}
+				if (setCount < 7){
+					for (; setCount < 7; setCount ++){
+						timerBytes[3 + setCount * 3 + 1] = (byte) 0xff;
+						timerBytes[3 + setCount * 3 + 2] = (byte) 0xff;
+						timerBytes[3 + setCount * 3 + 3] = (byte) 0xff;
+					}
+				}
+		        
+		        timerBytes[25] = (byte) (timerBytes[0] ^ timerBytes[1] ^ timerBytes[2] ^ timerBytes[3] ^ timerBytes[4]
+		        		^ timerBytes[5] ^ timerBytes[6] ^ timerBytes[7] ^ timerBytes[8] ^ timerBytes[9]
+		        		^ timerBytes[10] ^ timerBytes[11] ^ timerBytes[12] ^ timerBytes[13] ^ timerBytes[14]
+		        		^ timerBytes[15] ^ timerBytes[16] ^ timerBytes[17] ^ timerBytes[18] ^ timerBytes[19] 
+		        		^ timerBytes[20] ^ timerBytes[21] ^ timerBytes[22] ^ timerBytes[23] ^ timerBytes[24]);
+		        timerBytes[26] = 0x23;
+		       sendMessage(timerBytes);
+			}
+
+//			3A 00 01 4B 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 70 23
+		}
+	}
+
 	private String formatValue(String value) {
 		int length = value.length();
 		String added = "";

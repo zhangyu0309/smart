@@ -119,6 +119,8 @@
 		   <result name="add_method">/page/deviceForm.jsp</result>
 		   <result name="update_method">/page/deviceForm.jsp</result>
 		   <result name="manage_method">/page/device.jsp</result>
+		   <result name="editDeviceBoard">/page/boardKeyForm.jsp</result>
+		   <result name="timer_method">/page/timerForm.jsp</result>
 		</action>
 	</package>
 </struts>

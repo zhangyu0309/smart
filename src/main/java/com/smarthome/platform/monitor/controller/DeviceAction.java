@@ -17,6 +17,7 @@ import com.smarthome.platform.monitor.bean.Device;
 import com.smarthome.platform.monitor.bean.DeviceBoard;
 import com.smarthome.platform.monitor.bean.DeviceBoardData;
 import com.smarthome.platform.monitor.bean.SensorData;
+import com.smarthome.platform.monitor.bean.Timer;
 import com.smarthome.platform.monitor.service.DeviceService;
 
 /**
@@ -34,6 +35,8 @@ public class DeviceAction extends BaseAction {
 	 * 用于查询的
 	 */
 	private Device device;
+	
+	private Timer timer;
 	
 	/**
 	 * 编辑的类型 0 代表添加 1 代表更新  2:管理用户设备
@@ -71,6 +74,20 @@ public class DeviceAction extends BaseAction {
 	private String boardId;
 	private String keyId;
 	private String positionId;
+	
+	private DeviceBoard deviceBoard;
+	private String id;
+	private String sceneName;
+	private String onoff;
+	private String all;
+	
+	
+	
+	private int type;
+	private int action;
+	private String action_time;
+	private String weeks;
+	private String week_time;
 	/**
 	 * 查询设备信息
 	 * @return
@@ -130,6 +147,8 @@ public class DeviceAction extends BaseAction {
 			return "update_method";
 		}else if(this.editType==2){
 			return "manage_method";
+		}else if(this.editType==3){
+			return "timer_method";
 		}
 		return null;
 	}
@@ -309,7 +328,16 @@ public class DeviceAction extends BaseAction {
 	public String onoff(){
 		Map<String,Object> map = new HashMap<String,Object>();
 		if(this.device_id!=null && !this.device_id.equals("")){
-			map = this.deviceService.onoffDvice(this.device_id, option);
+			Device device = this.deviceService.getDeviceById(this.device_id);
+			if (device.getOnline().equals("0")){
+				map.put("flag", false);
+				map.put("msg", "设备当前不在线！");
+			}else {
+				if (option == 2){
+					option = 7;
+				}
+				map = this.deviceService.onoffDvice(this.device_id, option);
+			}
 		}else{
 			map.put("flag", false);
 			map.put("msg", "传递的参数为空");
@@ -351,7 +379,8 @@ public class DeviceAction extends BaseAction {
 	 */
 	public String getAllKeysBy(){
 		Map<String,Object> map = new HashMap<String,Object>();
-		List<DeviceBoard> list = this.deviceService.getAllKeysByDevice(this.deviceId, this.boardId, this.keyId);
+		Admin sessionAdmin = (Admin) this.getSession(AuthorityCommon.ADMIN_SESSION);
+		List<DeviceBoard> list = this.deviceService.getAllKeysByDevice(this.deviceId, this.boardId, this.keyId, null,sessionAdmin.getUserId());
 		List<DeviceBoardData> resultList = new ArrayList<DeviceBoardData>();
 		if(list != null){
 			/**
@@ -420,7 +449,13 @@ public class DeviceAction extends BaseAction {
 		if(this.deviceId!=null && !this.deviceId.trim().equals("") && !this.deviceId.trim().equals(",")){
 			if(this.boardId!=null && !this.boardId.trim().equals("")){
 				if(this.keyId!=null && !this.keyId.trim().equals("")){
-					map = this.deviceService.distributeOrGetKey(this.deviceId,this.boardId, this.keyId, 2);
+					Device device = this.deviceService.getDeviceById(this.deviceId);
+					if (device.getOnline().equals("0")){
+						map.put("flag", false);
+						map.put("msg", "设备当前不在线！");
+					}else {
+						map = this.deviceService.distributeOrGetKey(this.deviceId,this.boardId, this.keyId, 2);
+					}
 				}else{
 					map.put("flag", false);
 					map.put("msg", "请先选择要分发的按键");
@@ -451,7 +486,13 @@ public class DeviceAction extends BaseAction {
 		if(this.deviceId!=null && !this.deviceId.trim().equals("") && !this.deviceId.trim().equals(",")){
 			if(this.boardId!=null && !this.boardId.trim().equals("")){
 				if(this.keyId!=null && !this.keyId.trim().equals("")){
-					map = this.deviceService.distributeOrGetKey(this.deviceId, this.boardId, this.keyId, 3);
+					Device device = this.deviceService.getDeviceById(this.deviceId);
+					if (device.getOnline().equals("0")){
+						map.put("flag", false);
+						map.put("msg", "设备当前不在线！");
+					}else {
+						map = this.deviceService.distributeOrGetKey(this.deviceId, this.boardId, this.keyId, 3);
+					}
 				}else{
 					map.put("flag", false);
 					map.put("msg", "请先选择要分发的按键");
@@ -494,6 +535,75 @@ public class DeviceAction extends BaseAction {
 		return null;
 	}
 	/**
+	 * 根据查询条件查询所有场景
+	 * @return
+	 */
+	public String getAllScenesBy(){
+		Map<String,Object> map = new HashMap<String,Object>();
+		Admin sessionAdmin = (Admin) this.getSession(AuthorityCommon.ADMIN_SESSION);
+		List<DeviceBoard> list = this.deviceService.getAllKeysByDevice(this.deviceId, this.boardId, this.keyId, this.all,sessionAdmin.getUserId());
+		if(list != null){
+			map.put("rows", list);
+			map.put("total", list.size());
+		}
+		this.jsonString = JsonUtils.getJAVABeanJSON(map);
+		try {
+			this.responseWriter(this.jsonString);
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage() , e);
+		}
+		return null;
+	}
+	
+	
+	/**
+	 * 根据查询条件查询所有定时任务
+	 * @return
+	 */
+	public String getAllTimersBy(){
+		Map<String,Object> map = new HashMap<String,Object>();
+		Admin sessionAdmin = (Admin) this.getSession(AuthorityCommon.ADMIN_SESSION);
+		List<Timer> list = this.deviceService.getAllTimersByDevice(this.deviceId, sessionAdmin.getUserId());
+		if(list != null){
+			map.put("rows", list);
+			map.put("total", list.size());
+		}
+		this.jsonString = JsonUtils.getJAVABeanJSON(map);
+		try {
+			this.responseWriter(this.jsonString);
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage() , e);
+		}
+		return null;
+	}
+	/**
+	 * 修改场景名和开关状态
+	 * @return
+	 */
+	public String UpdateBoardKeyBy(){
+		this.deviceBoard = this.deviceService.getDeviceBoardById(this.id);
+		return "editDeviceBoard";
+	}
+	
+	public String editSceneBy(){
+		Map<String,Object> map = new HashMap<String,Object>();
+		if(this.id!=null){
+			map = this.deviceService.editScene(this.id, this.sceneName, this.onoff);
+		}else{
+			map.put("flag", false);
+			map.put("msg", "请先选择要编辑的场景");
+		}
+		this.jsonString = JsonUtils.getJAVABeanJSON(map);
+		try {
+			this.responseWriter(this.jsonString);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	/**
 	 * 
 	 * @param sourceString  0x0000001f
 	 * @return  00000000000000000000000000011111
@@ -506,8 +616,8 @@ public class DeviceAction extends BaseAction {
 			return "99999999999999999999999999999999";
 		}
 		try{
-			int sourceInt = Integer.parseInt(sourceString.replace("0x", ""), 16);
-			String sBString = Integer.toBinaryString(sourceInt);
+			long sourceInt = Long.parseLong(sourceString.replace("0x", ""), 16);
+			String sBString = Long.toBinaryString(sourceInt);
 			int length = sBString.length();
 			for (int i = 1; i <= 32-length; i++){
 				sBString = "0" + sBString;
@@ -518,6 +628,65 @@ public class DeviceAction extends BaseAction {
 		}
 	}
 	
+	
+	/**
+	 * 添加设备
+	 * @return
+	 */
+	public String addTime(){
+		Map<String,Object> map = new HashMap<String,Object>();
+		this.timer = new Timer();
+		this.timer.setType(Integer.toString(this.type));
+		this.timer.setAction(Integer.toString(this.action));
+		this.timer.setDevice_id(this.device_id);
+		this.timer.setAction_time(this.action_time);
+		this.timer.setWeeks(this.weeks);
+		this.timer.setWeek_time(this.week_time);
+		System.out.println(JsonUtils.getJAVABeanJSON(this.timer));
+		if(this.timer!=null){
+			if(this.timer.getType().equals("0") && this.timer.getAction_time() == null){
+				map.put("flag", false);
+				map.put("msg", "请选择动作时间");
+			}else if(this.timer.getType().equals("1") && (this.timer.getWeeks() == null || this.timer.getWeek_time() == null)){
+				map.put("flag", false);
+				map.put("msg", "请选择动作时间");
+			}else {
+				map = this.deviceService.addDeviceTimer(this.timer);
+			}
+		}else{
+			map.put("flag", false);
+			map.put("msg", "传递的参数为空");
+		}
+		this.jsonString = JsonUtils.getJAVABeanJSON(map);
+		try {
+			this.responseWriter(this.jsonString);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	/**
+	 * onoff  100:删除  0禁用  1启用
+	 * @return
+	 */
+	public String updateTimer(){
+		Map<String,Object> map = new HashMap<String,Object>();
+		if(this.id != null && this.onoff != null){
+			//开启删除操作
+			map = this.deviceService.updateTimer(this.id , Integer.parseInt(this.onoff), this.deviceId);
+		}else{
+			map.put("flag", false);
+			map.put("msg", "传递的参数为空");
+		}
+		this.jsonString = JsonUtils.getJAVABeanJSON(map);
+		try {
+			this.responseWriter(this.jsonString);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
 	/**
 	 * 以下方法struts2使用 
 	 */
@@ -582,6 +751,10 @@ public class DeviceAction extends BaseAction {
 		this.deviceId = deviceId;
 	}
 
+	public String getDeviceId() {
+		return deviceId;
+	}
+
 	public void setBoardId(String boardId) {
 		this.boardId = boardId;
 	}
@@ -592,6 +765,122 @@ public class DeviceAction extends BaseAction {
 
 	public void setPositionId(String positionId) {
 		this.positionId = positionId;
+	}
+
+	public void setDeviceBoard(DeviceBoard deviceBoard) {
+		this.deviceBoard = deviceBoard;
+	}
+
+	public DeviceBoard getDeviceBoard() {
+		return deviceBoard;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public void setSceneName(String sceneName) {
+		this.sceneName = sceneName;
+	}
+
+	public void setOnoff(String onoff) {
+		this.onoff = onoff;
+	}
+
+	public void setAll(String all) {
+		this.all = all;
+	}
+
+	public void setTimer(Timer timer) {
+		this.timer = timer;
+	}
+
+	public int getType() {
+		return type;
+	}
+
+	public void setType(int type) {
+		this.type = type;
+	}
+
+	public int getAction() {
+		return action;
+	}
+
+	public void setAction(int action) {
+		this.action = action;
+	}
+
+	public String getAction_time() {
+		return action_time;
+	}
+
+	public void setAction_time(String action_time) {
+		this.action_time = action_time;
+	}
+
+	public String getWeeks() {
+		return weeks;
+	}
+
+	public void setWeeks(String weeks) {
+		this.weeks = weeks;
+	}
+
+	public String getWeek_time() {
+		return week_time;
+	}
+
+	public void setWeek_time(String week_time) {
+		this.week_time = week_time;
+	}
+
+	public Timer getTimer() {
+		return timer;
+	}
+
+	public String getDevice_id() {
+		return device_id;
+	}
+
+	public int getPage() {
+		return page;
+	}
+
+	public int getRows() {
+		return rows;
+	}
+
+	public int getOption() {
+		return option;
+	}
+
+	public String getBoardId() {
+		return boardId;
+	}
+
+	public String getKeyId() {
+		return keyId;
+	}
+
+	public String getPositionId() {
+		return positionId;
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public String getSceneName() {
+		return sceneName;
+	}
+
+	public String getOnoff() {
+		return onoff;
+	}
+
+	public String getAll() {
+		return all;
 	}
 	
 }

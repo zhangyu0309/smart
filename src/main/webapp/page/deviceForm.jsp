@@ -14,6 +14,7 @@
    var enabledObj;
    var parentId;
    var isAdd ;
+   var subType;
    //初始化父级节点
    $(function(){
 	   /**
@@ -40,18 +41,46 @@
 				text: '子设备'
 			}]
 	  });
+	  
+	  typeObj.combobox({
+			onSelect: function(param){
+				if (param.id == 2){
+					$("#devicetype").attr('style', '');
+				}else {
+					$("#devicetype").attr('style', 'display:none;');
+				}
+			}
+		});
+	  subType =  $("#subType").combobox({
+			valueField: 'id',
+			textField: 'text',
+			required:true,
+			editable:false,
+			data: [{
+				id: 0,
+				text: '开关'
+			},{
+				id: 1,
+				text: '电机'
+			}]
+	  });
 	   if("${editType}"==1){
 		   isAdd = false;
 		   if ("${device.parent_id}" == "0"){
 		   	typeObj.combobox("setValue","1");
+		   	$("#devicetype").attr('style', 'display:none;');
 		   }
 		   else{
+			$("#devicetype").attr('style', '');
 		    parentObj.combobox("setValue","${device.parent_id}");
 		   	typeObj.combobox("setValue","2");
+		   	subType.combobox("setValue","${device.device_type}");
 		   }
 	   }else{
 		   isAdd = true;
 		   typeObj.combobox("setValue","1");
+		   subType.combobox("setValue","0");
+		   $("#devicetype").attr('style', 'display:none;');
 	   }
 	   
    });
@@ -115,6 +144,11 @@
                 <td>类别：<select id="typeA" name="device.online" class="easyui-combobox" style="width: 80px;">
 						</select>
                 </td>
+            </tr>
+            <tr id="devicetype">
+	            <td colspan=2>子设备类型：<select id="subType" name="device.device_type" class="easyui-combobox" style="width: 310px;">
+						</select>
+	            </td>
             </tr>
             <tr >
                 <td colspan=2  >设备名称：<input name="device.device_name" class="easyui-textbox" data-options="required:true" value="${device.device_name}"  style="width: 330px;"/>

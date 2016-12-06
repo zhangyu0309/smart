@@ -91,23 +91,23 @@ $.extend($.fn.panel.defaults, sy.onMove);
  * 
  * @requires jQuery,EasyUI
  */
-sy.onLoadError = {
-	onLoadError : function(XMLHttpRequest) {
-		if (parent.$ && parent.$.messager) {
-			parent.$.messager.progress('close');
-			parent.$.messager.alert('错误', XMLHttpRequest.responseText);
-		} else {
-			$.messager.progress('close');
-			$.messager.alert('错误', XMLHttpRequest.responseText);
-		}
-	}
-};
-$.extend($.fn.datagrid.defaults, sy.onLoadError);
-$.extend($.fn.treegrid.defaults, sy.onLoadError);
-$.extend($.fn.tree.defaults, sy.onLoadError);
-$.extend($.fn.combogrid.defaults, sy.onLoadError);
-$.extend($.fn.combobox.defaults, sy.onLoadError);
-$.extend($.fn.form.defaults, sy.onLoadError);
+//sy.onLoadError = {
+//	onLoadError : function(XMLHttpRequest) {
+//		if (parent.$ && parent.$.messager) {
+//			parent.$.messager.progress('close');
+//			parent.$.messager.alert('错误', XMLHttpRequest.responseText);
+//		} else {
+//			$.messager.progress('close');
+//			$.messager.alert('错误', XMLHttpRequest.responseText);
+//		}
+//	}
+//};
+//$.extend($.fn.datagrid.defaults, sy.onLoadError);
+//$.extend($.fn.treegrid.defaults, sy.onLoadError);
+//$.extend($.fn.tree.defaults, sy.onLoadError);
+//$.extend($.fn.combogrid.defaults, sy.onLoadError);
+//$.extend($.fn.combobox.defaults, sy.onLoadError);
+//$.extend($.fn.form.defaults, sy.onLoadError);
 
 /**
  * 扩展combobox在自动补全模式时，检查用户输入的字符是否存在于下拉框中，如果不存在则清空用户输入

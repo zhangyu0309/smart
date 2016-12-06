@@ -1,5 +1,7 @@
 package com.smarthome.platform.monitor.common;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -184,4 +186,12 @@ public class Constant {
 	 * 用户登录口令
 	 */
 	public static Map<String, String> tokenMap = new HashMap<String, String>();
+	
+	/**
+	 * 客户端对时要求的时间格式
+	 */
+	public static SimpleDateFormat sdFormat = new SimpleDateFormat("HH:mm:ss,MM/dd/yyyy");
+
+	public static SimpleDateFormat sdc = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+//	System.out.println(sdFormat.format(new Date()));
 }

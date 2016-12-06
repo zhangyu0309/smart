@@ -54,6 +54,9 @@
       <if test="iconCls != null" >
         iconCls,
       </if>
+      <if test="device_type != null" >
+        device_type,
+      </if>
     </trim>
     <trim prefix="values (" suffix=")" suffixOverrides="," >
        <if test="device_id != null" >
@@ -74,6 +77,9 @@
       <if test="iconCls != null" >
         #{iconCls,jdbcType=VARCHAR},
       </if>
+      <if test="device_type != null" >
+       	#{device_type,jdbcType=VARCHAR},
+      </if>
     </trim>
   </insert>
   <update id="updateDevice" parameterType="com.smarthome.platform.monitor.bean.Device" >
@@ -90,6 +96,9 @@
       </if>
       <if test="description != null" >
         description = #{description,jdbcType=VARCHAR},
+      </if>
+       <if test="device_type != null" >
+       	device_type = #{device_type,jdbcType=VARCHAR},
       </if>
     </set>
     where device_id = #{device_id,jdbcType=VARCHAR}
@@ -117,6 +126,15 @@
 	delete from command where device_id=#{deviceId,jdbcType=VARCHAR} and operation in (2,3)
   </delete>
   
+ <delete id="deleteSceneCommand" parameterType="java.util.HashMap">
+     delete from command where device_id=#{deviceId,jdbcType=VARCHAR} and operation=6
+ </delete>
+ 
+ <insert id="insertSceneCommand" parameterType="java.util.HashMap">
+     INSERT INTO command(device_id,board_id,key_id,operation,content)
+	SELECT device_id,board_id,key_id,6,'' from device_key where id=#{id,jdbcType=VARCHAR}
+ </insert>
+ 
   <insert id="onoffDvice" parameterType="java.util.HashMap" >
     insert into command
     <trim prefix="(" suffix=")" suffixOverrides="," >
@@ -174,9 +192,11 @@
   
    <select id="getAllKeysByDevice" statementType="CALLABLE" parameterType="java.util.HashMap"
 		resultType="com.smarthome.platform.monitor.bean.DeviceBoard">
-		SELECT c.device_id deviceId,d.device_name deviceName ,c.board_id boardId, c.key_id keyId, c.value1,c.value2 from device_key c,device_info d
+		SELECT c.id,c.device_id deviceId,d.device_name deviceName ,c.board_id boardId, c.key_id keyId, c.value1,c.value2,
+		c.scene_name sceneName,c.onoff
+		from device_key c,device_info d
 		<where>
-		    d.device_id = c.device_id AND d.parent_id='0'
+		    d.device_id = c.device_id AND d.parent_id='0' AND d.user_id=#{userId,jdbcType=VARCHAR}
 			<if test="deviceId !=null"> AND c.device_id =#{deviceId,jdbcType=VARCHAR}</if>
 			<if test="boardId !=null"> AND c.board_id =#{boardId,jdbcType=VARCHAR}</if>
 			<if test="keyId !=null"> AND c.key_id =#{keyId,jdbcType=VARCHAR}</if>
@@ -203,5 +223,117 @@
 	<select id="getUpdatedCount" resultType="java.lang.Integer">
 	    select count(id) from device_key where device_id=#{device_id,jdbcType=VARCHAR} and board_id=#{boardId,jdbcType=VARCHAR}
 	     and key_id=#{keyId,jdbcType=VARCHAR} and updated=1
+	</select>
+	
+	<select id="getDeviceBoardById" parameterType="java.util.HashMap" resultType="com.smarthome.platform.monitor.bean.DeviceBoard">
+	    SELECT c.id,c.device_id deviceId,c.board_id boardId, c.key_id keyId, c.value1,c.value2,
+		c.scene_name sceneName,c.onoff
+		from device_key c
+		<where>
+		    c.id = #{id,jdbcType=VARCHAR}
+		</where>
+	</select>
+	
+	<update id="editScene" parameterType="java.util.HashMap">
+	    update device_key 
+	    <set>
+			<if test="sceneName !=null"> scene_name=#{sceneName,jdbcType=VARCHAR},</if>
+	   	 	<if test="onoff !=null"> onoff=#{onoff,jdbcType=VARCHAR},</if>
+		</set>
+	    where id=#{id,jdbcType=VARCHAR}
+	</update>
+	
+	<select id="getUserDeviceCount" parameterType="java.util.HashMap" resultType="java.lang.Integer">
+	    select count(1) from device_info where device_id=#{deviceId,jdbcType=VARCHAR} and user_id=#{userId,jdbcType=VARCHAR}
+	</select>
+	
+	<update id="renameUserDeviceCount" parameterType="java.util.HashMap">
+	    update device_info set device_name=#{deviceName,jdbcType=VARCHAR} where device_id=#{deviceId,jdbcType=VARCHAR} and user_id=#{userId,jdbcType=VARCHAR}
+	</update>
+	
+	<insert id="addSubDevice" parameterType="java.util.HashMap">
+	    insert into device_info(device_id,device_name,parent_id,device_type,user_id)
+		values (#{deviceId,jdbcType=VARCHAR},#{deviceName,jdbcType=VARCHAR},
+		#{parentId,jdbcType=INTEGER},#{deviceType,jdbcType=INTEGER},#{userId,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="getSceneList" parameterType="java.util.HashMap" resultType="com.smarthome.platform.monitor.bean.DeviceBoard">
+	    SELECT c.id,c.device_id deviceId,c.board_id boardId, c.key_id keyId, c.value1 hvalue,c.value2 lvalue,
+		c.scene_name sceneName,c.onoff status
+		from device_key c
+		<where>
+		    c.device_id = #{deviceId,jdbcType=VARCHAR}
+		</where>
+		order by c.device_id,c.board_id,c.key_id
+	</select>
+	
+	<update id="updateScene" parameterType="java.util.HashMap">
+	    update device_key 
+	    <set>
+			<if test="sceneName !=null"> scene_name = #{sceneName,jdbcType=VARCHAR},</if>
+	   	 	<if test="status !=null"> onoff = #{status,jdbcType=INTEGER},</if>
+		</set>
+	    
+	    where device_id=#{deviceId,jdbcType=VARCHAR} and board_id=#{boardId,jdbcType=VARCHAR} 
+	    and key_id=#{keyId,jdbcType=VARCHAR}
+	</update>
+	
+	<update id="closeAllScene" parameterType="java.util.HashMap">
+	    update device_key set onoff=0 
+	    where device_id=#{deviceId,jdbcType=VARCHAR}
+	</update>
+	
+	 <insert id="addSceneCommand" parameterType="java.util.HashMap">
+	     INSERT INTO command(device_id,board_id,key_id,operation,content)
+		values (#{deviceId,jdbcType=VARCHAR},#{boardId,jdbcType=VARCHAR},#{keyId,jdbcType=VARCHAR},6,'')
+ 	</insert>
+ 	
+	<select id="getAllTimersByDevice" parameterType="java.util.HashMap" resultType="com.smarthome.platform.monitor.bean.Timer">
+	    select a.* from device_timer a, device_info b where a.device_id=b.device_id and 
+	b.user_id=#{userId,jdbcType=VARCHAR} 
+	<if test="deviceId !=null"> and a.device_id LIKE concat(#{deviceId,jdbcType=VARCHAR},'-','%') </if>
+	 order by week_time 
+	</select>
+	
+	<select id="getSingleExistsTimer" parameterType="com.smarthome.platform.monitor.bean.Timer" resultType="java.lang.Integer">
+	    select count(1) from device_timer where type=0 and action=#{action,jdbcType=VARCHAR} 
+	        and device_id=#{device_id,jdbcType=VARCHAR} and action_time=#{action_time,jdbcType=VARCHAR}
+	</select>
+	
+	<select id="getReExistsTimer" parameterType="com.smarthome.platform.monitor.bean.Timer" resultType="java.lang.Integer">
+	    select count(1) from device_timer where type=1 and action=#{action,jdbcType=VARCHAR} 
+	        and device_id=#{device_id,jdbcType=VARCHAR} and weeks=#{weeks,jdbcType=VARCHAR} and 
+	        week_time=#{week_time,jdbcType=VARCHAR}
+	</select>
+	<insert id="addSingleTimer"  parameterType="com.smarthome.platform.monitor.bean.Timer" >
+	    insert into device_timer (device_id,type,action_time,week_time,action) values 
+	        (#{device_id,jdbcType=VARCHAR},0,#{action_time,jdbcType=VARCHAR},#{action_time,jdbcType=VARCHAR},#{action,jdbcType=VARCHAR})
+	</insert>
+	
+	<insert id="addReTimer"  parameterType="com.smarthome.platform.monitor.bean.Timer" >
+	    insert into device_timer (device_id,type,weeks,week_time,action) values 
+	        (#{device_id,jdbcType=VARCHAR},1,#{weeks,jdbcType=VARCHAR},#{week_time,jdbcType=VARCHAR},#{action,jdbcType=VARCHAR})
+	</insert>
+	
+	<delete id="deleteTimer" parameterType="java.util.HashMap">
+	    delete from device_timer where id=#{id,jdbcType=VARCHAR}
+	</delete>
+	
+	<update id="startTimer" parameterType="java.util.HashMap">
+	    update device_timer set status=1 where id=#{id,jdbcType=VARCHAR}
+	</update>
+	
+	<update id="stopTimer" parameterType="java.util.HashMap">
+	    update device_timer set status=0 where id=#{id,jdbcType=VARCHAR}
+	</update>
+	
+	<insert id="insertTimerCommand" parameterType="java.util.HashMap">
+	   INSERT INTO command(device_id,board_id,key_id,operation,content)
+		SELECT device_id,null,null,8,'' from device_info where device_id=#{deviceId,jdbcType=VARCHAR} 
+		and online=1
+	</insert>
+	
+	<select id="getTimerById" parameterType="java.util.HashMap" resultType="com.smarthome.platform.monitor.bean.Timer">
+	    select * from device_timer where id=#{id,jdbcType=VARCHAR} 
 	</select>
 </mapper>

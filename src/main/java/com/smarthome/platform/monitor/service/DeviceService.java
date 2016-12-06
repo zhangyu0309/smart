@@ -16,9 +16,11 @@ import com.smarthome.platform.monitor.bean.Command;
 import com.smarthome.platform.monitor.bean.Device;
 import com.smarthome.platform.monitor.bean.DeviceBoard;
 import com.smarthome.platform.monitor.bean.SensorData;
+import com.smarthome.platform.monitor.bean.Timer;
 import com.smarthome.platform.monitor.dao.DeviceDao;
 import com.smarthome.platform.monitor.dao.DeviceJDBCDao;
 import com.smarthome.platform.monitor.dao.HostJDBCDao;
+import com.sun.tools.classfile.Annotation.element_value;
 
 /**
  * 设备管理业务逻辑层的处理
@@ -171,14 +173,15 @@ public class DeviceService {
 		return dao.getAllParentDevice(userId);
 	}
 	public List<DeviceBoard> getAllKeysByDevice(String deviceId,
-			String boardId, String keyId) {
-		if (deviceId == null && boardId == null && keyId == null){
+			String boardId, String keyId, String all, String userId) {
+		if (deviceId == null && boardId == null && keyId == null && all == null){
 			return new ArrayList<DeviceBoard>();
 		}
 		Map<String,Object> map = new HashMap<String,Object>();
 		map.put("deviceId", (deviceId == null || deviceId.equals("")) ? null : deviceId);
 		map.put("boardId", (boardId == null || boardId.equals("")) ? null : boardId);
 		map.put("keyId", (keyId == null || keyId.equals("")) ? null : keyId);
+		map.put("userId", userId);
 		return dao.getAllKeysByDevice(map);
 	}
 	
@@ -285,8 +288,8 @@ public class DeviceService {
 			return "99999999999999999999999999999999";
 		}
 		try{
-			int sourceInt = Integer.parseInt(sourceString.replace("0x", ""), 16);
-			String sBString = Integer.toBinaryString(sourceInt);
+			long sourceInt = Long.parseLong(sourceString.replace("0x", ""), 16);
+			String sBString = Long.toBinaryString(sourceInt);
 			int length = sBString.length();
 			for (int i = 1; i <= 32-length; i++){
 				sBString = "0" + sBString;
@@ -352,16 +355,18 @@ public class DeviceService {
 			paramMap.put("boardId", boardId);
 			paramMap.put("keyId", keyId);
 			paramMap.put("content", "KEYCONF:"+keyId+","+hvalue+","+lvalue+".BOARD:"+boardId+".");
-			if(dao.onoffDvice(paramMap) > 0){
+			try{
 				Device device = dao.getDeviceById(device_id);
 				if (device.getOnline().equals("0")){
-					map.put("flag", true);
+					map.put("flag", false);
 					map.put("msg", "0014");
 				}else {
+					dao.onoffDvice(paramMap);
 					map.put("flag", true);
 					map.put("msg", "0001");
 				}
-			}else{
+			}catch(Exception e){
+				logger.error(e.getMessage(), e);
 				map.put("flag", false);
 				map.put("msg", "0000");
 			}
@@ -422,4 +427,348 @@ public class DeviceService {
 		return map;
 	
 	}
+	/**
+	 * 根据id查询设备board信息
+	 * @param id
+	 * @return
+	 */
+	public DeviceBoard getDeviceBoardById(String id) {
+		Map<String,Object> paramMap = new HashMap<String,Object>();
+		paramMap.put("id", id);
+		return dao.getDeviceBoardById(paramMap);
+	}
+	/**
+	 * 编辑场景
+	 * @param id
+	 * @param sceneName
+	 * @param onoff
+	 * @return
+	 */
+	public Map<String, Object> editScene(String id, String sceneName,
+			String onoff) {
+		Map<String,Object> map = new HashMap<String,Object>();
+		Map<String,Object> paramMap = new HashMap<String,Object>();
+		paramMap.put("id", id);
+		paramMap.put("sceneName", (sceneName == null || sceneName.equals("")) ? null : sceneName);
+		paramMap.put("onoff", (sceneName == null || sceneName.equals("")) ? onoff : null);
+		
+		if (onoff != null && onoff.equals("1")) {
+			DeviceBoard db = dao.getDeviceBoardById(paramMap);
+			Device device = dao.getDeviceById(db.getDeviceId());
+			if (device.getOnline().equals("0")){
+				map.put("flag", false);
+				map.put("msg", "设备当前不在线！");
+				return map;
+			}
+			paramMap.put("deviceId", db.getDeviceId());
+			dao.closeAllScene(paramMap);
+			dao.deleteSceneCommand(paramMap);
+			dao.insertSceneCommand(paramMap);
+		}
+		try {
+			dao.editScene(paramMap);
+			map.put("flag", true);
+			map.put("msg",  (sceneName == null || sceneName.equals("")) ? "开启场景成功" : "修改场景成功");
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+			map.put("flag", false);
+			map.put("msg", "修改场景失败");
+		}
+		return map;
+	}
+	/**
+	 * 重命名设备
+	 * @param user_idString
+	 * @param device_id
+	 * @param device_name
+	 * @return
+	 */
+	public Map<String, Object> renameDevice(String user_idString,
+			String device_id, String device_name) {
+		Map<String,Object> map = new HashMap<String,Object>();
+		Map<String,Object> paramMap = new HashMap<String,Object>();
+		paramMap.put("userId", user_idString);
+		paramMap.put("deviceId", device_id);
+		paramMap.put("deviceName", device_name);
+		try{
+			int count = dao.getUserDeviceCount(paramMap);
+			if (count == 1){
+				dao.renameUserDeviceCount(paramMap);
+				map.put("flag", true);
+				map.put("msg", "0001");
+			}else {
+				map.put("flag", false);
+				map.put("msg", "0008");
+			}
+		}catch(Exception e){
+			logger.error(e.getMessage(), e);
+			map.put("flag", false);
+			map.put("msg", "0000");
+		}
+		return map;
+	}
+	/**
+	 * 应用添加子设备
+	 * @param user_idString
+	 * @param device_id
+	 * @param device_name
+	 * @param device_type
+	 * @param parent_id
+	 * @return
+	 */
+	public Map<String, Object> addSubDevice(String user_idString,
+			String device_id, String device_name, String device_type, String parent_id) {
+		Map<String,Object> map = new HashMap<String,Object>();
+		Map<String,Object> paramMap = new HashMap<String,Object>();
+		paramMap.put("userId", user_idString);
+		paramMap.put("deviceId", parent_id);
+		try{
+			int count = dao.getUserDeviceCount(paramMap);
+			if (count == 1){
+				paramMap.put("deviceName", device_name);
+				paramMap.put("deviceType", device_type);
+				paramMap.put("parentId", parent_id);
+				paramMap.put("deviceId", parent_id + "-" + device_id);
+				int deviceCount = dao.getUserDeviceCount(paramMap);
+				if(deviceCount == 0){
+					dao.addSubDevice(paramMap);
+					map.put("flag", true);
+					map.put("msg", "0001");
+				}else {
+					map.put("flag", false);
+					map.put("msg", "0007");
+				}
+			}else {
+				map.put("flag", false);
+				map.put("msg", "0008");
+			}
+		}catch(Exception e){
+			logger.error(e.getMessage(), e);
+			map.put("flag", false);
+			map.put("msg", "0000");
+		}
+		return map;
+	}
+	/**
+	 * 获取场景列表
+	 * @param user_idString
+	 * @param device_id
+	 * @return
+	 */
+	public List<DeviceBoard> getSceneList(String user_idString, String device_id) {
+		Map<String,Object> paramMap = new HashMap<String,Object>();
+		paramMap.put("userId", user_idString);
+		paramMap.put("deviceId", device_id);
+		try{
+			int count = dao.getUserDeviceCount(paramMap);
+			if (count == 1){
+				return dao.getSceneList(paramMap);
+			}else {
+				return null;
+			}
+		}catch(Exception e){
+			logger.error(e.getMessage(), e);
+			return null;
+		}
+	}
+	
+	public Map<String, Object> updateScene(String user_idString,
+			String device_id, String boardId, String keyId, String sceneName, String status) {
+		Map<String,Object> paramMap = new HashMap<String,Object>();
+		Map<String,Object> map = new HashMap<String,Object>();
+		paramMap.put("userId", user_idString);
+		paramMap.put("deviceId", device_id);
+		try{
+			int count = dao.getUserDeviceCount(paramMap);
+			if (count == 1){
+				paramMap.put("boardId", boardId);
+				paramMap.put("keyId", keyId);
+				paramMap.put("sceneName", (sceneName == null || sceneName.equals("")) ? null : sceneName);
+				paramMap.put("status", null);
+				
+//				if (status != null && status.equals("1")) {
+//					dao.closeAllScene(paramMap);
+//				}
+				dao.updateScene(paramMap);
+				map.put("flag", true);
+				map.put("msg", "0001");
+			}else {
+				map.put("flag", false);
+				map.put("msg", "0008");
+			}
+		}catch(Exception e){
+			logger.error(e.getMessage(), e);
+			map.put("flag", false);
+			map.put("msg", "0000");
+		}
+		return map;
+	}
+	
+	public Map<String, Object> openScene(String user_idString,
+			String device_id, String boardId, String keyId) {
+
+		Map<String,Object> paramMap = new HashMap<String,Object>();
+		Map<String,Object> map = new HashMap<String,Object>();
+		paramMap.put("userId", user_idString);
+		paramMap.put("deviceId", device_id);
+		try{
+			int count = dao.getUserDeviceCount(paramMap);
+			if (count == 1){
+				paramMap.put("boardId", boardId);
+				paramMap.put("keyId", keyId);
+				
+				Device device = dao.getDeviceById(device_id);
+				if (device.getOnline().equals("0")){
+					map.put("flag", false);
+					map.put("msg", "0014");
+					return map;
+				}
+				paramMap.put("deviceId", device_id);
+				dao.closeAllScene(paramMap);
+				dao.deleteSceneCommand(paramMap);
+				dao.addSceneCommand(paramMap);
+				map.put("flag", true);
+				map.put("msg", "0001");
+			}else {
+				map.put("flag", false);
+				map.put("msg", "0008");
+			}
+		}catch(Exception e){
+			logger.error(e.getMessage(), e);
+			map.put("flag", false);
+			map.put("msg", "0000");
+		}
+		return map;
+	
+	}
+	/**
+	 * 根据查询条件查询所有定时任务
+	 * @param deviceId
+	 * @param userId
+	 * @return
+	 */
+	public List<Timer> getAllTimersByDevice(String deviceId, String userId) {
+		Map<String,Object> map = new HashMap<String,Object>();
+		map.put("deviceId", (deviceId == null || deviceId.equals("")) ? null : deviceId);
+		map.put("userId", userId);
+		return dao.getAllTimersByDevice(map);
+	}
+	
+	/**
+	 * 添加定时任务
+	 * @param timer
+	 * @return
+	 */
+	public Map<String, Object> addDeviceTimer(Timer timer) {
+		Map<String,Object> result = new HashMap<String,Object>();
+		int count = timer.getType().equals("0") ? dao.getSingleExistsTimer(timer) : dao.getReExistsTimer(timer);
+		if (count <= 0){
+			if (timer.getType().equals("0")){
+				dao.addSingleTimer(timer);
+			}else {
+				dao.addReTimer(timer);
+			}
+			Map<String,Object> param = new HashMap<String,Object>();
+			param.put("deviceId", timer.getDevice_id().split("-")[0]);
+			dao.insertTimerCommand(param);
+			
+			result.put("flag", true);
+			result.put("msg", "添加定时任务成功");
+		}else {
+			result.put("flag", false);
+			result.put("msg", "定时任务有冲突或重复，请检查");
+		}
+		return result;
+	}
+	
+	public Map<String, Object> updateTimer(String id, int op, String deviceId) {
+		Map<String,Object> param = new HashMap<String,Object>();
+		param.put("id", id);
+		if (op == 100){
+			dao.deleteTimer(param);
+		}else if (op == 1){
+			dao.startTimer(param);
+		}else if (op == 0){
+			dao.stopTimer(param);
+		}
+		Map<String,Object> result = new HashMap<String,Object>();
+		result.put("flag", true);
+		result.put("msg", "0001");
+		param.put("deviceId", deviceId.split("-")[0]);
+		dao.insertTimerCommand(param);
+		return result;
+	}
+	
+	/**
+	 * 添加定时任务
+	 * @param timer
+	 * @param user_idString 
+	 * @return
+	 */
+	public Map<String, Object> addDeviceTimerFromApp(Timer timer, String user_idString) {
+		Map<String,Object> result = new HashMap<String,Object>();
+		int count = timer.getType().equals("0") ? dao.getSingleExistsTimer(timer) : dao.getReExistsTimer(timer);
+		if (count <= 0){
+			Map<String,Object> paramMap = new HashMap<String,Object>();
+			paramMap.put("userId", user_idString);
+			paramMap.put("deviceId", timer.getDevice_id());
+			count = dao.getUserDeviceCount(paramMap);
+			if (count == 1){
+				if (timer.getType().equals("0")){
+					dao.addSingleTimer(timer);
+				}else {
+					dao.addReTimer(timer);
+				}
+				Map<String,Object> param = new HashMap<String,Object>();
+				param.put("deviceId", timer.getDevice_id().split("-")[0]);
+				dao.insertTimerCommand(param);
+				result.put("flag", true);
+				result.put("msg", "0001");
+			}else {
+				result.put("flag", false);
+				result.put("msg", "0008");
+			}
+		}else {
+			result.put("flag", false);
+			result.put("msg", "0004");
+		}
+		return result;
+	}
+	
+	public Map<String, Object> updateTimerFromApp(String id, int op, String user_idString) {
+		Map<String,Object> param = new HashMap<String,Object>();
+		Map<String,Object> result = new HashMap<String,Object>();
+		param.put("id", id);
+		Timer timer = dao.getTimerById(param);
+		if (timer != null){
+			String deviceId = timer.getDevice_id();
+			Map<String,Object> paramMap = new HashMap<String,Object>();
+			paramMap.put("userId", user_idString);
+			paramMap.put("deviceId", deviceId);
+			int count = dao.getUserDeviceCount(paramMap);
+			if (count == 1){
+				if (op == 100){
+					dao.deleteTimer(param);
+				}else if (op == 1){
+					dao.startTimer(param);
+				}else if (op == 0){
+					dao.stopTimer(param);
+				}
+				result.put("flag", true);
+				result.put("msg", "0001");
+				param.put("deviceId", deviceId.split("-")[0]);
+				dao.insertTimerCommand(param);
+			}else {
+				result.put("flag", false);
+				result.put("msg", "0008");
+			}
+		}else {
+			result.put("flag", false);
+			result.put("msg", "0002");
+		}
+		return result;
+	}
+	
 }
+
+

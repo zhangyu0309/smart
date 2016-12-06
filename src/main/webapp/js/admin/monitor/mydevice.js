@@ -67,12 +67,16 @@ $(function() {
 									field : 'parent_id',
 									title : '设备类型',
 									width : 100,
-									formatter : function(value) {
+									formatter : function(value, data) {
 										if (value == '0') {
 											var s = '主控板';
 											return s;
 										} else {
-											return '子设备';
+											if(data.device_type == 1){
+												return '电机';
+											}else {
+												return '开关';
+											}
 										} 
 									}
 								},
@@ -190,5 +194,70 @@ var deviceoff = function(){
 					}
 				}
 				});
+	}
+};
+
+var stopdevice = function(){
+	var rows = treeGrid.datagrid('getSelections');
+	var num = rows.length;
+
+	if (num == 0) {
+		parent.$.messager.alert('提示', '请选择一条记录进行操作!', 'info'); 
+		return;
+	} else if (num > 1) {
+		parent.$.messager.alert('提示', '您选择了多条记录,只能选择一条记录进行操作!', 'info'); 
+		return;
+	}else {
+		if (rows[0].device_type != 1){
+			parent.$.messager.alert('提示', '请选择[电机]类型的子设备!', 'info'); 
+			return;
+		}
+		//rows[0].device_id
+			$.ajax({
+				type:"post", //请求方式
+				url:sy.contextPath+"onoffDevice.do", //发送请求地址
+				data:{
+			   		"option":2,
+			   		"device_id":rows[0].device_id
+				   },
+				success:function(r){
+					if(r.flag){
+						parent.$.messager.alert('提示', r.msg, 'info');
+					}else{
+						parent.$.messager.alert('提示', r.msg, 'info');
+					}
+				}
+				});
+	}
+};
+
+var devicetimer = function(){
+	var rows = treeGrid.datagrid('getSelections');
+	var num = rows.length;
+	if (num == 0) {
+		parent.$.messager.alert('提示', '请选择一条记录进行操作!', 'info'); 
+		return;
+	} else if (num > 1) {
+		parent.$.messager.alert('提示', '您选择了多条记录,只能选择一条记录进行操作!', 'info'); 
+		return;
+	}else {
+		if (rows[0].parent_id == '0'){
+			parent.$.messager.alert('提示', '定时任务仅支持子设备!', 'info'); 
+			return;
+		}
+		var dialog = parent.sy.modalDialog({
+			title : '定时开关',
+			width:600,
+		    height:400,
+			url : sy.contextPath + "beginAddOrUpdateDevice.do?editType=3&deviceId=" + rows[0].device_id,
+			buttons : [ {
+				text : '保存',
+				handler : function() {
+					dialog.find('iframe').get(0).contentWindow.submitForm(dialog,
+							treeGrid, parent.$);
+
+				}
+			} ]
+		});
 	}
 };
