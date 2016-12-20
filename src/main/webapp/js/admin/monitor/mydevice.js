@@ -74,8 +74,10 @@ $(function() {
 										} else {
 											if(data.device_type == 1){
 												return '电机';
-											}else {
-												return '开关';
+											}else if(data.device_type == 0){
+												return '开关/插座';
+											}else if(data.device_type == 2){
+												return '光调节器';
 											}
 										} 
 									}
@@ -143,7 +145,10 @@ var deviceon = function(){
 		parent.$.messager.alert('提示', '您选择了多条记录,只能选择一条记录进行操作!', 'info'); 
 		return;
 	}else {
-		//rows[0].device_id
+		if (rows[0].device_type != 0 && rows[0].device_type != 1){
+			parent.$.messager.alert('提示', '请选择[开关/插座/电机]类型的子设备!', 'info'); 
+			return;
+		}
 			$.ajax({
 				type:"post", //请求方式
 				url:sy.contextPath+"onoffDevice.do", //发送请求地址
@@ -177,26 +182,31 @@ var deviceoff = function(){
 		parent.$.messager.alert('提示', '您选择了多条记录,只能选择一条记录进行操作!', 'info'); 
 		return;
 	}else {
-		//rows[0].device_id
-			$.ajax({
-				type:"post", //请求方式
-				url:sy.contextPath+"onoffDevice.do", //发送请求地址
-				data:{
-			   		"option":1,
-			   		"device_id":rows[0].device_id
-				   },
-				success:function(r){
-					if(r.flag){
-						parent.$.messager.alert('提示', r.msg, 'info');
-						//treeGrid.treegrid('load');
-					}else{
-						parent.$.messager.alert('提示', r.msg, 'info');
-					}
+		if (rows[0].device_type != 0 && rows[0].device_type != 1){
+			parent.$.messager.alert('提示', '请选择[开关/插座/电机]类型的子设备!', 'info'); 
+			return;
+		}
+		$.ajax({
+			type:"post", //请求方式
+			url:sy.contextPath+"onoffDevice.do", //发送请求地址
+			data:{
+		   		"option":1,
+		   		"device_id":rows[0].device_id
+			   },
+			success:function(r){
+				if(r.flag){
+					parent.$.messager.alert('提示', r.msg, 'info');
+					//treeGrid.treegrid('load');
+				}else{
+					parent.$.messager.alert('提示', r.msg, 'info');
 				}
-				});
+			}
+			});
 	}
 };
-
+/**
+ * 停
+ */
 var stopdevice = function(){
 	var rows = treeGrid.datagrid('getSelections');
 	var num = rows.length;
@@ -230,7 +240,9 @@ var stopdevice = function(){
 				});
 	}
 };
-
+/**
+ * 定时
+ */
 var devicetimer = function(){
 	var rows = treeGrid.datagrid('getSelections');
 	var num = rows.length;
@@ -241,15 +253,66 @@ var devicetimer = function(){
 		parent.$.messager.alert('提示', '您选择了多条记录,只能选择一条记录进行操作!', 'info'); 
 		return;
 	}else {
+		if (rows[0].device_type != 0 && rows[0].device_type != 1){
+			parent.$.messager.alert('提示', '请选择[开关/插座/电机]类型的子设备!', 'info'); 
+			return;
+		}
 		if (rows[0].parent_id == '0'){
-			parent.$.messager.alert('提示', '定时任务仅支持子设备!', 'info'); 
+			var dialog = parent.sy.modalDialog({
+				title : '定时场景-' + rows[0].device_name,
+				width:600,
+			    height:400,
+				url : sy.contextPath + "beginAddOrUpdateDevice.do?editType=4&deviceId=" + rows[0].device_id,
+				buttons : [ {
+					text : '保存',
+					handler : function() {
+						dialog.find('iframe').get(0).contentWindow.submitForm(dialog,
+								treeGrid, parent.$);
+
+					}
+				} ]
+			});
+		}else {
+			var dialog = parent.sy.modalDialog({
+				title : '定时开关-' + rows[0].device_name,
+				width:600,
+			    height:400,
+				url : sy.contextPath + "beginAddOrUpdateDevice.do?editType=3&deviceId=" + rows[0].device_id,
+				buttons : [ {
+					text : '保存',
+					handler : function() {
+						dialog.find('iframe').get(0).contentWindow.submitForm(dialog,
+								treeGrid, parent.$);
+
+					}
+				} ]
+			});
+		}
+	}
+};
+
+/**
+ * 调亮
+ */
+var dimmer = function(){
+	var rows = treeGrid.datagrid('getSelections');
+	var num = rows.length;
+	if (num == 0) {
+		parent.$.messager.alert('提示', '请选择一条记录进行操作!', 'info'); 
+		return;
+	} else if (num > 1) {
+		parent.$.messager.alert('提示', '您选择了多条记录,只能选择一条记录进行操作!', 'info'); 
+		return;
+	}else {
+		if (rows[0].device_type != 2){
+			parent.$.messager.alert('提示', '请选择[光调节器]类型的子设备!', 'info'); 
 			return;
 		}
 		var dialog = parent.sy.modalDialog({
-			title : '定时开关',
-			width:600,
-		    height:400,
-			url : sy.contextPath + "beginAddOrUpdateDevice.do?editType=3&deviceId=" + rows[0].device_id,
+			title : '亮度调节-' + rows[0].device_name,
+			width:500,
+		    height:300,
+			url : sy.contextPath + "beginAddOrUpdateDevice.do?editType=5&deviceId=" + rows[0].device_id,
 			buttons : [ {
 				text : '保存',
 				handler : function() {

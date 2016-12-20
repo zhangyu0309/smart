@@ -1,6 +1,9 @@
 package com.smarthome.platform.monitor.service;
 
+import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,10 +20,10 @@ import com.smarthome.platform.monitor.bean.Device;
 import com.smarthome.platform.monitor.bean.DeviceBoard;
 import com.smarthome.platform.monitor.bean.SensorData;
 import com.smarthome.platform.monitor.bean.Timer;
+import com.smarthome.platform.monitor.common.Constant;
 import com.smarthome.platform.monitor.dao.DeviceDao;
 import com.smarthome.platform.monitor.dao.DeviceJDBCDao;
 import com.smarthome.platform.monitor.dao.HostJDBCDao;
-import com.sun.tools.classfile.Annotation.element_value;
 
 /**
  * 设备管理业务逻辑层的处理
@@ -147,10 +150,11 @@ public class DeviceService {
 		return dao.getLatestData(device_id);
 	}
 	
-	public Map<String, Object> onoffDvice(String device_id, int option) {
+	public Map<String, Object> onoffDvice(String device_id, int option, String content) {
 		Map<String,Object> map = new HashMap<String,Object>();
 		map.put("device_id", device_id);
 		map.put("option", option);
+		map.put("content", content);
 		dao.deleteCommand(device_id);
 		if(dao.onoffDvice(map) > 0){
 			map.put("flag", true);
@@ -663,13 +667,30 @@ public class DeviceService {
 		Map<String,Object> result = new HashMap<String,Object>();
 		int count = timer.getType().equals("0") ? dao.getSingleExistsTimer(timer) : dao.getReExistsTimer(timer);
 		if (count <= 0){
+			Map<String,Object> param = new HashMap<String,Object>();
+			param.put("deviceId", timer.getDevice_id());
+			if (timer.getType().equals("0")){
+				try {
+					param.put("week", getWeek(Constant.sdc.parse(timer.getAction_time())));
+				} catch (ParseException e) {
+					e.printStackTrace();
+				}
+				param.put("day", timer.getAction_time());
+				logger.info(JsonUtils.getJAVABeanJSON(param));
+				count = dao.getDeviceSingleTimerCount(param);
+				logger.info("111=-" + count);
+				if (count >= 7){
+					result.put("flag", false);
+					result.put("msg", "定时任务已达到最大数量");
+					return result;
+				}
+			}
 			if (timer.getType().equals("0")){
 				dao.addSingleTimer(timer);
 			}else {
 				dao.addReTimer(timer);
 			}
-			Map<String,Object> param = new HashMap<String,Object>();
-			param.put("deviceId", timer.getDevice_id().split("-")[0]);
+			dao.deleteTimerCommand(param);
 			dao.insertTimerCommand(param);
 			
 			result.put("flag", true);
@@ -679,6 +700,21 @@ public class DeviceService {
 			result.put("msg", "定时任务有冲突或重复，请检查");
 		}
 		return result;
+	}
+	/**
+	 * 当前周几
+	 * @return
+	 */
+	private static String getWeek(Date date){
+		String[] weekDays = {"7", "1", "2", "3", "4", "5", "6"};
+		Calendar cal = Calendar.getInstance();
+		cal.setTime(date);
+	    int week = cal.get(Calendar.DAY_OF_WEEK) - 1;
+//	    if (week < 0){
+//	    	week = 0;
+//	    }
+//	    week ++;
+	    return weekDays[week];
 	}
 	
 	public Map<String, Object> updateTimer(String id, int op, String deviceId) {
@@ -694,7 +730,9 @@ public class DeviceService {
 		Map<String,Object> result = new HashMap<String,Object>();
 		result.put("flag", true);
 		result.put("msg", "0001");
-		param.put("deviceId", deviceId.split("-")[0]);
+		param.put("deviceId", deviceId);
+		
+		dao.deleteTimerCommand(param);
 		dao.insertTimerCommand(param);
 		return result;
 	}
@@ -715,12 +753,28 @@ public class DeviceService {
 			count = dao.getUserDeviceCount(paramMap);
 			if (count == 1){
 				if (timer.getType().equals("0")){
+					try {
+						paramMap.put("week", getWeek(Constant.sdc.parse(timer.getAction_time())));
+					} catch (ParseException e) {
+						e.printStackTrace();
+					}
+					paramMap.put("day", timer.getAction_time());
+					count = dao.getDeviceSingleTimerCount(paramMap);
+					if (count >= 7){
+						result.put("flag", false);
+						result.put("msg", "0007");
+						return result;
+					}
+				}
+				if (timer.getType().equals("0")){
 					dao.addSingleTimer(timer);
 				}else {
 					dao.addReTimer(timer);
 				}
 				Map<String,Object> param = new HashMap<String,Object>();
-				param.put("deviceId", timer.getDevice_id().split("-")[0]);
+				param.put("deviceId", timer.getDevice_id());
+				
+				dao.deleteTimerCommand(param);
 				dao.insertTimerCommand(param);
 				result.put("flag", true);
 				result.put("msg", "0001");
@@ -756,7 +810,9 @@ public class DeviceService {
 				}
 				result.put("flag", true);
 				result.put("msg", "0001");
-				param.put("deviceId", deviceId.split("-")[0]);
+//				param.put("deviceId", deviceId.split("-")[0]);
+				param.put("deviceId", deviceId);
+				dao.deleteTimerCommand(param);
 				dao.insertTimerCommand(param);
 			}else {
 				result.put("flag", false);
@@ -768,7 +824,63 @@ public class DeviceService {
 		}
 		return result;
 	}
+	public List<Timer> getAllSceneTimersByDevice(String deviceId, String userId) {
+		Map<String,Object> map = new HashMap<String,Object>();
+		map.put("deviceId", (deviceId == null || deviceId.equals("")) ? null : deviceId);
+		map.put("userId", userId);
+		return dao.getAllSceneTimersByDevice(map);
+	}
 	
+	/**
+	 * 添加 场景定时任务
+	 * @param timer
+	 * @return
+	 */
+	public Map<String, Object> addDeviceSceneTimer(Timer timer, String user_id) {
+		Map<String,Object> result = new HashMap<String,Object>();
+		int count = timer.getType().equals("0") ? dao.getSingleExistsTimer(timer) : dao.getReExistsTimer(timer);
+		if (count <= 0){
+			Map<String,Object> paramMap = new HashMap<String,Object>();
+			paramMap.put("userId", user_id);
+			paramMap.put("deviceId", timer.getDevice_id());
+			count = dao.getUserDeviceCount(paramMap);
+			if (count == 1){
+				if (timer.getType().equals("0")){
+					try {
+						paramMap.put("week", getWeek(Constant.sdc.parse(timer.getAction_time())));
+					} catch (ParseException e) {
+						e.printStackTrace();
+					}
+					paramMap.put("day", timer.getAction_time());
+					count = dao.getDeviceSingleTimerCount(paramMap);
+					if (count >= 7){
+						result.put("flag", false);
+						result.put("msg", "0007");
+						return result;
+					}
+				}
+				if (timer.getType().equals("0")){
+					dao.addSingleTimer(timer);
+				}else {
+					dao.addReTimer(timer);
+				}
+				Map<String,Object> param = new HashMap<String,Object>();
+				param.put("deviceId", timer.getDevice_id());
+				
+				dao.deleteTimerCommand(param);
+				dao.insertTimerCommand(param);
+				result.put("flag", true);
+				result.put("msg", "0001");
+			}else {
+				result.put("flag", false);
+				result.put("msg", "0008");
+			}
+		}else {
+			result.put("flag", false);
+			result.put("msg", "0004");
+		}
+		return result;
+	}
 }
 
 

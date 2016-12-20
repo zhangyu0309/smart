@@ -74,8 +74,10 @@ $(function() {
 										} else {
 											if(data.device_type == 1){
 												return '电机';
-											}else {
-												return '开关';
+											}else if(data.device_type == 0){
+												return '开关/插座';
+											}else if(data.device_type == 2){
+												return '光调节器';
 											}
 										} 
 									}

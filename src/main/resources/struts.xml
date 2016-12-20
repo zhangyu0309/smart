@@ -121,6 +121,8 @@
 		   <result name="manage_method">/page/device.jsp</result>
 		   <result name="editDeviceBoard">/page/boardKeyForm.jsp</result>
 		   <result name="timer_method">/page/timerForm.jsp</result>
+		   <result name="scene_timer_method">/page/sceneTimerForm.jsp</result>
+		   <result name="dimmer_method">/page/dimmerForm.jsp</result>
 		</action>
 	</package>
 </struts>

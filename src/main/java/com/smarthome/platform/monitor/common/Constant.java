@@ -1,7 +1,6 @@
 package com.smarthome.platform.monitor.common;
 
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -12,7 +11,7 @@ public class Constant {
 	/**
 	 * 服务启动时 是否允许socket监听
 	 */
-	public static final boolean IS_RUN_SOCKET = true;
+	public static final boolean IS_RUN_SOCKET = false;
 	/**
 	 * 监听端口
 	 */

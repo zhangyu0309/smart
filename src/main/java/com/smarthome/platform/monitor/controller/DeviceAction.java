@@ -12,6 +12,7 @@ import org.apache.log4j.Logger;
 import com.smarthome.core.base.action.BaseAction;
 import com.smarthome.core.common.AuthorityCommon;
 import com.smarthome.core.util.JsonUtils;
+import com.smarthome.core.util.StringUtil;
 import com.smarthome.platform.authority.bean.Admin;
 import com.smarthome.platform.monitor.bean.Device;
 import com.smarthome.platform.monitor.bean.DeviceBoard;
@@ -81,7 +82,7 @@ public class DeviceAction extends BaseAction {
 	private String onoff;
 	private String all;
 	
-	
+	private String content;
 	
 	private int type;
 	private int action;
@@ -149,6 +150,10 @@ public class DeviceAction extends BaseAction {
 			return "manage_method";
 		}else if(this.editType==3){
 			return "timer_method";
+		}else if(this.editType==4){
+			return "scene_timer_method";
+		}else if(this.editType==5){
+			return "dimmer_method";
 		}
 		return null;
 	}
@@ -192,7 +197,34 @@ public class DeviceAction extends BaseAction {
 					}
 					return null;
 				}
-				this.device.setDevice_id(this.device.getParent_id() + "-" + this.device.getDevice_id());
+				int subid = 0;
+				try {
+					subid = Integer.parseInt(device.getDevice_id());
+				} catch (Exception e) {
+					logger.error(e.getMessage(), e);
+					map.put("flag", false);
+					map.put("msg", "子设备编号必须是1-255之间的整数");
+					this.jsonString = JsonUtils.getJAVABeanJSON(map);
+					try {
+						this.responseWriter(this.jsonString);
+					} catch (Exception e1) {
+						e1.printStackTrace();
+					}
+					return null;
+				}
+				if (subid <= 0 || subid > 255){
+					map.put("flag", false);
+					map.put("msg", "子设备编号必须是1-255之间的整数");
+					this.jsonString = JsonUtils.getJAVABeanJSON(map);
+					try {
+						this.responseWriter(this.jsonString);
+					} catch (Exception e1) {
+						e1.printStackTrace();
+					}
+					return null;
+				}
+				
+				this.device.setDevice_id(this.device.getParent_id() + "-" + StringUtil.addZeroForString(Integer.toHexString(subid).toLowerCase(), 4));
 				this.device.setDevice_id(this.device.getDevice_id().toLowerCase());
 				this.device.setIconCls("ext-icon-computer");
 			} 
@@ -267,6 +299,7 @@ public class DeviceAction extends BaseAction {
 		
 		List<SensorData> resultList = this.deviceService.getSensorData(sessionAdmin.getUserId(), start, rows);
 		this.jsonString = JsonUtils.getJAVABeanJSON(resultList);
+		
 		try {
 			this.responseWriter(jsonString);
 		} catch (Exception e) {
@@ -336,7 +369,10 @@ public class DeviceAction extends BaseAction {
 				if (option == 2){
 					option = 7;
 				}
-				map = this.deviceService.onoffDvice(this.device_id, option);
+				if (option == 3){
+					option = 9;
+				}
+				map = this.deviceService.onoffDvice(this.device_id, option, this.content);
 			}
 		}else{
 			map.put("flag", false);
@@ -630,7 +666,7 @@ public class DeviceAction extends BaseAction {
 	
 	
 	/**
-	 * 添加设备
+	 * 添加子设备定时任务
 	 * @return
 	 */
 	public String addTime(){
@@ -684,6 +720,64 @@ public class DeviceAction extends BaseAction {
 			this.responseWriter(this.jsonString);
 		} catch (Exception e) {
 			e.printStackTrace();
+		}
+		return null;
+	}
+	/**
+	 * 添加主设备场景定时任务
+	 * @return
+	 */
+	public String addSceneTime(){
+		Map<String,Object> map = new HashMap<String,Object>();
+		this.timer = new Timer();
+		this.timer.setType(Integer.toString(this.type));
+		this.timer.setAction(this.id);
+		this.timer.setDevice_id(this.device_id);
+		this.timer.setAction_time(this.action_time);
+		this.timer.setWeeks(this.weeks);
+		this.timer.setWeek_time(this.week_time);
+		System.out.println(JsonUtils.getJAVABeanJSON(this.timer));
+		if(this.timer!=null){
+			if(this.timer.getType().equals("0") && this.timer.getAction_time() == null){
+				map.put("flag", false);
+				map.put("msg", "请选择动作时间");
+			}else if(this.timer.getType().equals("1") && (this.timer.getWeeks() == null || this.timer.getWeek_time() == null)){
+				map.put("flag", false);
+				map.put("msg", "请选择动作时间");
+			}else {
+				map = this.deviceService.addDeviceTimer(this.timer);
+			}
+		}else{
+			map.put("flag", false);
+			map.put("msg", "传递的参数为空");
+		}
+		this.jsonString = JsonUtils.getJAVABeanJSON(map);
+		try {
+			this.responseWriter(this.jsonString);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	/**
+	 * 根据查询条件查询所有场景定时任务
+	 * @return
+	 */
+	public String getAllSceneTimersBy(){
+		Map<String,Object> map = new HashMap<String,Object>();
+		Admin sessionAdmin = (Admin) this.getSession(AuthorityCommon.ADMIN_SESSION);
+		List<Timer> list = this.deviceService.getAllSceneTimersByDevice(this.deviceId, sessionAdmin.getUserId());
+		if(list != null){
+			map.put("rows", list);
+			map.put("total", list.size());
+		}
+		this.jsonString = JsonUtils.getJAVABeanJSON(map);
+		try {
+			this.responseWriter(this.jsonString);
+		} catch (Exception e) {
+			e.printStackTrace();
+			logger.error(e.getMessage() , e);
 		}
 		return null;
 	}
@@ -881,6 +975,10 @@ public class DeviceAction extends BaseAction {
 
 	public String getAll() {
 		return all;
+	}
+
+	public void setContent(String content) {
+		this.content = content;
 	}
 	
 }

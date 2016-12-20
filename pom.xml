@@ -319,10 +319,53 @@
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
-					<source>1.5</source>
-					<target>1.5</target>
+					<source>1.7</source>
+					<target>1.7</target>
 				</configuration>
 			</plugin>
+			 <!-- BEGIN OBFUSCATE -->  
+            <plugin>  
+                <groupId>com.idfconnect.devtools</groupId>  
+                <artifactId>idfc-proguard-maven-plugin</artifactId>  
+                <version>1.0.1</version>  
+                <executions>  
+                    <execution>  
+                        <phase>prepare-package</phase>  
+                        <goals>  
+                            <goal>obfuscate</goal>  
+                        </goals>  
+                    </execution>  
+                </executions>  
+                <configuration>  
+                    <options>  
+                        <repackageclasses>com.idfconnect.sample.obfuscated</repackageclasses>  
+                    </options>  
+                    <inputFile>${project.build.outputDirectory}</inputFile>  
+                    <inputFileFilter>**.class</inputFileFilter>  
+                    <outputArtifacts>  
+                        <outputArtifact>  
+                            <file>${project.build.finalName}/WEB-INF/lib/${project.build.finalName}.jar</file>  
+                            <type>jar</type>  
+                        </outputArtifact>  
+                    </outputArtifacts>  
+                    <libraryArtifacts>  
+                        <libraryArtifact>junit:junit:4.11</libraryArtifact>  
+                    </libraryArtifacts>  
+                    <libraryJarPaths>  
+                        <libraryJarPath>${java.home}/lib/jsse.jar</libraryJarPath>  
+                    </libraryJarPaths>  
+                        <proguardIncludeFile>${basedir}/resources/${project.artifactId}-maven.pro</proguardIncludeFile>  
+                </configuration>  
+                <dependencies>  
+                    <dependency>  
+                        <groupId>net.sf.proguard</groupId>  
+                        <artifactId>proguard-base</artifactId>  
+                        <version>5.0</version>  
+                    </dependency>  
+                </dependencies>  
+            </plugin>  
+                  
+            <!-- END OBFUSCATE --> 
 		</plugins>
 	</build>
 </project>

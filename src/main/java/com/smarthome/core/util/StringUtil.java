@@ -20,7 +20,24 @@ import java.util.regex.Pattern;
 public class StringUtil {
 	
 	public static String classPath = "" ;
-
+	/**
+	 * 字符串前补0
+	 * @param str
+	 * @param strLength
+	 * @return
+	 */
+	public static String addZeroForString(String str, int strLength) {
+	    int strLen = str.length();
+	    if (strLen < strLength) {
+	        while (strLen < strLength) {
+	            StringBuffer sb = new StringBuffer();
+	            sb.append("0").append(str);
+	            str = sb.toString();
+	            strLen = str.length();
+	        }
+	    }
+	    return str;
+	}
 	/**
 	 * 将参数字符串中的特殊字符进行编码 例如 "Hello world!" 转换后为 "Hello%20world%21"
 	 * 
@@ -649,7 +666,20 @@ public class StringUtil {
 		return s;
 
 	}
-	
+	/**
+	 * 去除空格、换行符、制表符
+	 * @param str
+	 * @return
+	 */
+	public static String replaceBlank(String str) {
+		String dest = "";
+		if (str != null) {
+			Pattern p = Pattern.compile("\\s*|\t|\r|\n");
+			Matcher m = p.matcher(str);
+			dest = m.replaceAll("");
+		}
+		return dest;
+	}
 	
 
 }

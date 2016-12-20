@@ -123,13 +123,13 @@
 						singleSelect : true,
 						idField : 'device_id',
 						fit : true,
-						pagination : true,
+						pagination : false,
 						pageSize : 10,
 						pageList : [ 10, 20 ,50 ],
 						columns : [ [  {
 							field : 'device_name',
 							title : '设备',
-							width : '16%',
+							width : '20%',
 							formatter : function(value,data) {
 								if (data.online == '1') {
 									return value + '<font color="green">[在线]</font>';
@@ -137,33 +137,27 @@
 									return value + '<font color="red">[离线]</font>';
 								} 
 							}
-						} ,{
-							field : 'temp1',
-							title : '数据1',
-							width : '13%'
-						} , {
-							field : 'wet1',
-							title : '数据2',
-							width : '13%'
-						} , {
-							field : 'temp2',
-							title : '数据3',
-							width : '13%'
-						} , {
-							field : 'wet2',
-							title : '数据4',
-							width : '13%',
+						} ,
+						{
+							field : 'onoff',
+							title : '子设备开关状态',
+							width : '20%',
 							formatter : function(value,data) {
-								return "71";
+								if (data.device_id.indexOf('-') < 0) {
+									return '';
+								} else {
+									if (data.onoff == 1 || data.onoff == '1'){
+										return '<font color="green">开</font>';
+									}else {
+										return '<font color="red">关</font>';
+									}
+								} 
 							}
-						} , {
-							field : 'light',
-							title : '数据5',
-							width : '13%'
-						}  , {
+						} ,
+						{
 							field : 'data_time',
-							title : '数据时间',
-							width : '14%'
+							title : '最后心跳时间',
+							width : '20%'
 						}   ] ],
 						onClickRow : function(rowIndex, rowData){  //点击事件
 							//currentclick = rowData.device_id;

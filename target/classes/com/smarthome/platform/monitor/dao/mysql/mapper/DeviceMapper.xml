@@ -110,16 +110,16 @@
   
   <select id="getSensorData" statementType="CALLABLE" parameterType="java.util.HashMap"
 		resultType="com.smarthome.platform.monitor.bean.SensorData">
-    select * from device_info WHERE user_id = #{user_id,jdbcType=VARCHAR} and temp1 is not null order by device_id limit #{start,jdbcType=INTEGER},#{limit,jdbcType=INTEGER}
+    select * from device_info WHERE user_id = #{user_id,jdbcType=VARCHAR} order by device_id
   </select>
   
   <select id="getLatestData" statementType="CALLABLE" parameterType="java.lang.String"
 		resultType="com.smarthome.platform.monitor.bean.SensorData">
-    	select * from device_info where device_id= #{_parameter,jdbcType=VARCHAR} and temp1 is not null
+    	select * from device_info where device_id= #{_parameter,jdbcType=VARCHAR}
   </select>
   
  <delete id="deleteCommand" parameterType="java.lang.String" >
-	delete from command where device_id=#{_parameter,jdbcType=VARCHAR} and operation in (0,1)
+	delete from command where device_id=#{_parameter,jdbcType=VARCHAR} and operation in (0,1,7,9)
   </delete>
   
  <delete id="deleteDisOrGetCommand" parameterType="java.util.HashMap" >
@@ -289,8 +289,9 @@
  	</insert>
  	
 	<select id="getAllTimersByDevice" parameterType="java.util.HashMap" resultType="com.smarthome.platform.monitor.bean.Timer">
-	    select a.* from device_timer a, device_info b where a.device_id=b.device_id and 
+	    select a.*, b.device_name from device_timer a, device_info b where a.device_id=b.device_id and 
 	b.user_id=#{userId,jdbcType=VARCHAR} 
+	and a.device_id LIKE concat('%','-','%') and (`type`=1 or (`type`=0 and DATEDIFF(action_time,CURRENT_TIMESTAMP)) >= 0)
 	<if test="deviceId !=null"> and a.device_id LIKE concat(#{deviceId,jdbcType=VARCHAR},'-','%') </if>
 	 order by week_time 
 	</select>
@@ -333,7 +334,24 @@
 		and online=1
 	</insert>
 	
+	<delete id="deleteTimerCommand" parameterType="java.util.HashMap">
+	    delete from command where operation=8 and device_id=#{deviceId,jdbcType=VARCHAR}
+	</delete>
 	<select id="getTimerById" parameterType="java.util.HashMap" resultType="com.smarthome.platform.monitor.bean.Timer">
 	    select * from device_timer where id=#{id,jdbcType=VARCHAR} 
+	</select>
+	
+	<select id="getDeviceSingleTimerCount" parameterType="java.util.HashMap" resultType="java.lang.Integer">
+	    select count(1) from device_timer where type='0' and DATEDIFF(action_time, #{day,jdbcType=VARCHAR} ) = 0 and 
+	    device_id=#{deviceId,jdbcType=VARCHAR} 
+	</select>
+	
+	<select id="getAllSceneTimersByDevice" parameterType="java.util.HashMap" resultType="com.smarthome.platform.monitor.bean.Timer">
+	    select a.`action_time`,a.`add_time`,a.`device_id`,a.`id`,a.`status`,a.`type`,a.`week_time`,a.`weeks`,c.scene_name action, 
+	    b.device_name,c.board_id,c.key_id,c.id scene_id from device_timer a, device_info b,device_key c where a.device_id=b.device_id and 
+	b.user_id=#{userId,jdbcType=VARCHAR} and a.action = c.id
+	and a.device_id not LIKE concat('%','-','%') and (`type`=1 or (`type`=0 and DATEDIFF(action_time,CURRENT_TIMESTAMP)) >= 0)
+	<if test="deviceId !=null"> and a.device_id = #{deviceId,jdbcType=VARCHAR} </if>
+	 order by week_time 
 	</select>
 </mapper>

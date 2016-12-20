@@ -24,7 +24,8 @@
 		  url: sy.contextPath + "getAllParentDevice.do?user_id="+user_id,
 		  idField:"device_id",
 		  valueField:"device_id",  
-		  textField:"device_name",	    
+		  textField:"device_name",
+		  panelHeight:"auto",
 		  onSelect: function (row) {
 		  }
 	  });
@@ -58,10 +59,13 @@
 			editable:false,
 			data: [{
 				id: 0,
-				text: '开关'
+				text: '开关/插座'
 			},{
 				id: 1,
 				text: '电机'
+			},{
+				id: 2,
+				text: '光调节器'
 			}]
 	  });
 	   if("${editType}"==1){
@@ -123,7 +127,7 @@
     height:35px;
   }
   .main{
-       margin-left: 66px;
+       margin-left: 10px;
   }
 </style>
 </head>
@@ -145,6 +149,10 @@
 						</select>
                 </td>
             </tr>
+            <tr><td colspan=2><font color="red" size="1.5">
+            	设备ID:主设备直接填写设备号，子设备填写子设备序号，限制1-255之间的整数 
+            	</font>
+            </td></tr>
             <tr id="devicetype">
 	            <td colspan=2>子设备类型：<select id="subType" name="device.device_type" class="easyui-combobox" style="width: 310px;">
 						</select>

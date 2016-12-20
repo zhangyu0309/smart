@@ -50,6 +50,10 @@ public class SensorData {
 	 */
 	private String online;
 	
+	/**
+	 * 
+	 */
+	private String onoff;
 	public SensorData() {
 		super();
 	}
@@ -63,6 +67,14 @@ public class SensorData {
 		this.temp2 = temp2;
 		this.wet2 = wet2;
 		this.light = light;
+	}
+
+	public String getOnoff() {
+		return onoff;
+	}
+
+	public void setOnoff(String onoff) {
+		this.onoff = onoff;
 	}
 
 	public String getDevice_id() {

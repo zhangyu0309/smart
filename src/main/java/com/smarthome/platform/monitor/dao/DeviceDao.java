@@ -101,4 +101,10 @@ public interface DeviceDao {
 
 	public Timer getTimerById(Map<String, Object> param);
 
+	public void deleteTimerCommand(Map<String, Object> param);
+
+	public int getDeviceSingleTimerCount(Map<String, Object> paramMap);
+
+	public List<Timer> getAllSceneTimersByDevice(Map<String, Object> map);
+
 }
